@@ -133,7 +133,7 @@
         name: str(s.name),
         collapsed: !!s.collapsed,
         items: (Array.isArray(s.items) ? s.items : []).map((it) => ({
-          id: uid(), desc: str(it.desc), vol: str(it.vol), unit: str(it.unit), price: num(it.price),
+          id: uid(), desc: str(it.desc), vol: str(it.vol), unit: str(it.unit), price: num(it.price), labor: num(it.labor),
         })),
       })),
       updatedAt: Date.now(),
@@ -200,15 +200,26 @@
   window.addEventListener('pagehide', () => { if (saveTimer) flush(); });
 
   // ---------- Perhitungan ----------
+  const itemTotal = (it) => num(it.vol) * (num(it.price) + num(it.labor));
+
   function calc(p) {
-    const secs = p.sections.map((s) => s.items.reduce((a, it) => a + num(it.vol) * num(it.price), 0));
+    let matTotal = 0;
+    let laborTotal = 0;
+    const secs = p.sections.map((s) => s.items.reduce((a, it) => {
+      const v = num(it.vol);
+      const m = v * num(it.price);
+      const l = v * num(it.labor);
+      matTotal += m;
+      laborTotal += l;
+      return a + m + l;
+    }, 0));
     const subtotal = secs.reduce((a, b) => a + b, 0);
     const cont = subtotal * num(p.contingency) / 100;
     const profit = subtotal * num(p.profit) / 100;
     const base = subtotal + cont + profit;
     const tax = base * num(p.tax) / 100;
     const total = base + tax;
-    return { secs, subtotal, cont, profit, tax, total, rounded: Math.ceil(total / 1000) * 1000 };
+    return { secs, matTotal, laborTotal, subtotal, cont, profit, tax, total, rounded: Math.ceil(total / 1000) * 1000 };
   }
 
   // ---------- Render ----------
@@ -225,7 +236,8 @@
       <label class="cell c-desc"><span class="cell-label">Uraian pekerjaan</span><input data-ifield="desc" value="${esc(it.desc)}" placeholder="mis. Pasang keramik lantai" aria-label="Uraian pekerjaan" autocomplete="off"></label>
       <label class="cell c-vol"><span class="cell-label">Volume</span><input data-ifield="vol" inputmode="decimal" value="${esc(it.vol)}" placeholder="0" aria-label="Volume" autocomplete="off"></label>
       <label class="cell c-unit"><span class="cell-label">Satuan</span><input data-ifield="unit" list="unitList" value="${esc(it.unit)}" placeholder="m²" aria-label="Satuan" autocomplete="off"></label>
-      <label class="cell c-price"><span class="cell-label">Harga satuan (Rp)</span><input data-ifield="price" inputmode="numeric" value="${it.price ? fmt(it.price) : ''}" placeholder="0" aria-label="Harga satuan dalam rupiah" autocomplete="off"></label>
+      <label class="cell c-price"><span class="cell-label">Harga satuan (Rp)</span><input data-ifield="price" inputmode="numeric" value="${it.price ? fmt(it.price) : ''}" placeholder="0" aria-label="Harga satuan atau bahan dalam rupiah" autocomplete="off"></label>
+      <label class="cell c-labor"><span class="cell-label">Upah tukang (Rp)</span><input data-ifield="labor" inputmode="numeric" value="${it.labor ? fmt(it.labor) : ''}" placeholder="0" aria-label="Upah tukang per satuan dalam rupiah" autocomplete="off"></label>
       <div class="cell c-total"><span class="cell-label">Jumlah</span><output data-itotal>Rp 0</output></div>
       <button type="button" class="icon-btn danger c-del" data-act="del-item" title="Hapus item" aria-label="Hapus item">${ICON.x}</button>
     </div>`;
@@ -242,7 +254,7 @@
         <button type="button" class="icon-btn danger" data-act="del-section" title="Hapus kelompok" aria-label="Hapus kelompok">${ICON.trash}</button>
       </div>
       <div class="sec-body">
-        <div class="item-head" aria-hidden="true"><span></span><span>Uraian pekerjaan</span><span>Volume</span><span>Satuan</span><span>Harga satuan (Rp)</span><span class="r">Jumlah</span><span></span></div>
+        <div class="item-head" aria-hidden="true"><span></span><span>Uraian pekerjaan</span><span>Volume</span><span>Satuan</span><span>Harga satuan (Rp)</span><span>Upah tukang (Rp)</span><span class="r">Jumlah</span><span></span></div>
         <div class="items">${s.items.map(itemHTML).join('')}</div>
         <button type="button" class="btn btn-ghost add-item" data-act="add-item">+ Tambah item</button>
       </div>
@@ -310,7 +322,7 @@
       secEl.querySelector('.sec-count').textContent = s.items.length + ' item';
       s.items.forEach((it) => {
         const out = secEl.querySelector(`[data-iid="${it.id}"] [data-itotal]`);
-        if (out) out.textContent = rp(num(it.vol) * num(it.price));
+        if (out) out.textContent = rp(itemTotal(it));
       });
     });
 
@@ -335,6 +347,10 @@
 
     const row = (label, val, cls = '', maskable = false) => `<div class="recap-row ${cls}"><span title="${esc(label)}">${esc(label)}</span><span>${maskable ? showVal(val) : rp(val)}</span></div>`;
     let html = p.sections.map((s, i) => row(`${letter(i)}. ${s.name || 'Tanpa nama'}`, c.secs[i])).join('');
+    if (c.laborTotal > 0 && c.matTotal > 0) {
+      html += row('Subtotal bahan', c.matTotal);
+      html += row('Subtotal upah tukang', c.laborTotal);
+    }
     html += row('Total pekerjaan', c.subtotal, 'strong', true);
     if (num(p.contingency)) html += row(`Tak terduga (${num(p.contingency)}%)`, c.cont);
     if (num(p.profit)) html += row(`Jasa kontraktor (${num(p.profit)}%)`, c.profit);
@@ -371,7 +387,7 @@
 
   function commitCalc(t) {
     if (!(t instanceof HTMLInputElement)) return false;
-    const isPrice = t.dataset.ifield === 'price' || t.hasAttribute('data-fprice');
+    const isPrice = t.dataset.ifield === 'price' || t.dataset.ifield === 'labor' || t.hasAttribute('data-fprice');
     const isVol = t.dataset.ifield === 'vol';
     const isCalc = isPrice || isVol || t.hasAttribute('data-calc');
     if (!isCalc || !HAS_OP.test(t.value)) return false;
@@ -392,7 +408,7 @@
       t.value = n ? fmt(n) : '';
       const s = p && p.sections.find((x) => x.id === t.closest('[data-sid]')?.dataset.sid);
       const it = s && s.items.find((x) => x.id === t.closest('[data-iid]')?.dataset.iid);
-      if (it) { it.price = n; renderTotals(); save(); }
+      if (it) { it[t.dataset.ifield] = n; renderTotals(); save(); }
     } else if (isVol) {
       const str = cleanNum(res);
       t.value = str;
@@ -457,7 +473,7 @@
     } else if (t.dataset.ifield) {
       const it = s.items.find((x) => x.id === t.closest('[data-iid]').dataset.iid);
       const f = t.dataset.ifield;
-      if (f === 'price') it.price = moneyInput(t);
+      if (f === 'price' || f === 'labor') it[f] = moneyInput(t);
       else if (f === 'vol') { t.value = t.value.replace(/[^\d.,+\-*/×÷xX:()\s]/g, ''); it.vol = t.value; }
       else it[f] = t.value;
     }
@@ -589,7 +605,7 @@
         break;
 
       case 'add-item': {
-        const it = { id: uid(), desc: '', vol: '', unit: '', price: 0 };
+        const it = { id: uid(), desc: '', vol: '', unit: '', price: 0, labor: 0 };
         s.items.push(it);
         secEl.querySelector('.items').insertAdjacentHTML('beforeend', itemHTML(it));
         secEl.querySelector(`[data-iid="${it.id}"] input`).focus();
@@ -623,7 +639,7 @@
 
   $('#btnAddSection').addEventListener('click', () => {
     const p = cur();
-    const s = { id: uid(), name: '', collapsed: false, items: [{ id: uid(), desc: '', vol: '', unit: '', price: 0 }] };
+    const s = { id: uid(), name: '', collapsed: false, items: [{ id: uid(), desc: '', vol: '', unit: '', price: 0, labor: 0 }] };
     p.sections.push(s);
     renderSections();
     renderTotals();
@@ -647,6 +663,9 @@
 
   const DEFAULT_COEFFS = {
     priceFactor: 100,
+    laborShare: 32,
+    tukangRate: 175000,
+    kenekRate: 125000,
     wallRatio: 2.75,
     roofRatio: 1.38,
     perimRatio: 1.35,
@@ -694,13 +713,63 @@
   };
 
   let genCoeffs = { ...DEFAULT_COEFFS };
-  let lastFormulaType = '';
+  let lastFormulaKey = '';
 
-  function applyFormulaCustom(secs) {
+  function applyFormulaCustom(secs, opts) {
     const pf = Math.max(0.1, num(genCoeffs.priceFactor) / 100 || 1);
     if (pf !== 1) {
       secs.forEach((s) => {
         s.items.forEach((it) => { it.price = Math.round(it.price * pf); });
+      });
+    }
+
+    const mode = opts?.workMode || 'borongan';
+    const laborPct = Math.min(0.8, Math.max(0.1, (num(genCoeffs.laborShare) || 32) / 100));
+    const round1k = (n) => Math.max(1000, Math.round(n / 1000) * 1000);
+
+    const toLaborItem = (it) => {
+      const descLow = it.desc.toLowerCase();
+      // Untuk pemasangan keramik/granit lantai: konversi ke satuan dos (60x60 ≈ 1.44 m²/dos, 40x40 ≈ 1 m²/dos)
+      if ((descLow.includes('granit') || descLow.includes('keramik')) && it.unit === 'm²') {
+        const m2PerDos = descLow.includes('60×60') || descLow.includes('60x60') ? 1.44 : 1;
+        const dosVol = Math.max(1, Math.ceil(num(it.vol) / m2PerDos));
+        const dosPrice = round1k(num(it.price) * laborPct * m2PerDos);
+        return { id: uid(), desc: 'Upah ' + it.desc, vol: String(dosVol), unit: 'dos', price: dosPrice };
+      }
+      return { id: uid(), desc: 'Upah ' + it.desc, vol: it.vol, unit: it.unit, price: round1k(it.price * laborPct) };
+    };
+
+    if (mode === 'pisah' && secs.length) {
+      const rawTotal = secs.reduce((a, s) => a + s.items.reduce((b, it) => b + num(it.vol) * num(it.price), 0), 0);
+      secs.forEach((s) => {
+        s.items.forEach((it) => { it.price = round1k(it.price * (1 - laborPct)); it.labor = 0; });
+      });
+      const tukangRate = Math.max(50000, Math.round(num(genCoeffs.tukangRate) || 175000));
+      const kenekRate = Math.max(40000, Math.round(num(genCoeffs.kenekRate) || 125000));
+      const estDays = Math.max(1, Math.round((rawTotal * laborPct) / (tukangRate + kenekRate)));
+      secs.push({
+        id: uid(),
+        name: 'Upah Tenaga Kerja (Harian)',
+        collapsed: false,
+        items: [
+          { id: uid(), desc: 'Upah Tukang / Kepala Tukang', vol: String(estDays), unit: 'org/hari', price: 0, labor: tukangRate },
+          { id: uid(), desc: 'Upah Kenek / Pembantu Tukang', vol: String(estDays), unit: 'org/hari', price: 0, labor: kenekRate },
+        ],
+      });
+    } else if (mode === 'pisah_satuan' && secs.length) {
+      secs.forEach((s) => {
+        s.items.forEach((it) => {
+          const full = num(it.price);
+          it.price = round1k(full * (1 - laborPct));
+          it.labor = round1k(full * laborPct);
+        });
+      });
+    } else if (mode === 'jasa' && secs.length) {
+      secs.forEach((s) => {
+        s.items = s.items.map((it) => {
+          const l = toLaborItem(it);
+          return { id: l.id, desc: l.desc, vol: l.vol, unit: l.unit, price: 0, labor: l.price };
+        });
       });
     }
     return secs;
@@ -754,7 +823,7 @@
       id: uid(),
       name,
       collapsed: false,
-      items: rows.map(([desc, vol, unit, price]) => ({ id: uid(), desc, vol: String(vol), unit, price: Math.round(price) })),
+      items: rows.map(([desc, vol, unit, price]) => ({ id: uid(), desc, vol: String(vol), unit, price: Math.round(price), labor: 0 })),
     });
 
     if (opts.type === 'tambah') {
@@ -844,7 +913,7 @@
         ['Cat dinding (2 sisi)', r1(wallArea * 2), 'm²', T.paintPrice],
         ['Cat plafon', roomArea, 'm²', T.paintPrice],
       ]));
-      return applyFormulaCustom(secs);
+      return applyFormulaCustom(secs, opts);
     }
 
     if (opts.type === 'pagar') {
@@ -907,7 +976,7 @@
       if (wallM2 > 0) finishRows.push(['Cat tembok eksterior tahan cuaca (2 sisi)', r1(wallM2 * 2), 'm²', Math.round(T.paintPrice * 1.15)]);
       if (ironM2 > 0 || hasGate) finishRows.push(['Cat dasar anti karat & cat finishing besi', 1, 'ls', Math.round((650000 + len * 45000) * tierMul)]);
       secs.push(toSec('Finishing & Pengecatan', finishRows));
-      return applyFormulaCustom(secs);
+      return applyFormulaCustom(secs, opts);
     }
 
     if (opts.type === 'kanopi') {
@@ -955,7 +1024,7 @@
       }
       accRows.push(['Sealant anti bocor & perapian sambungan dinding', len, "m'", 45000]);
       secs.push(toSec('Talang, Finishing & Aksesoris', accRows));
-      return applyFormulaCustom(secs);
+      return applyFormulaCustom(secs, opts);
     }
 
     if (opts.type === 'renovasi') {
@@ -1016,7 +1085,7 @@
           ['Cat ulang plafon', area, 'm²', T.paintPrice],
         ]));
       }
-      return applyFormulaCustom(secs);
+      return applyFormulaCustom(secs, opts);
     }
 
     // Bangun Rumah Baru
@@ -1099,7 +1168,7 @@
         ['Cat kusen, lisplang & perapian', 1, 'ls', Math.round(1200000 + area * 18000)],
       ]),
     ];
-    return applyFormulaCustom(secs);
+    return applyFormulaCustom(secs, opts);
   }
 
   function readGenOpts() {
@@ -1126,6 +1195,7 @@
       canopyRoof: f.elements.canopyRoof.value,
       canopyGutter: f.elements.canopyGutter.checked,
       tier: f.elements.tier.value,
+      workMode: f.elements.workMode ? f.elements.workMode.value : 'borongan',
       scopes: [...f.querySelectorAll('input[name="scope"]:checked')].map((el) => el.value),
       mode: f.elements.mode ? f.elements.mode.value : 'replace',
     };
@@ -1139,8 +1209,15 @@
     kanopi: ['Rangka & ketebalan standar, hemat biaya', 'Ketebalan & finishing standar awet', 'Besi lebih tebal, finishing rapi & tahan lama'],
   };
 
-  function renderFormulaCoeffs(type) {
-    const fields = COEFF_META[type] || COEFF_META.bangun;
+  function renderFormulaCoeffs(type, workMode) {
+    const fields = [...(COEFF_META[type] || COEFF_META.bangun)];
+    if (workMode === 'pisah' || workMode === 'pisah_satuan' || workMode === 'jasa') {
+      fields.push(['laborShare', 'Porsi upah tukang (%)', 'Standar konstruksi umumnya 30% – 35% dari total borongan']);
+    }
+    if (workMode === 'pisah') {
+      fields.push(['tukangRate', 'Upah tukang / hari (Rp)', 'Tarif harian tukang atau kepala tukang']);
+      fields.push(['kenekRate', 'Upah kenek / hari (Rp)', 'Tarif harian kenek / pembantu tukang']);
+    }
     $('#genCoeffGrid').innerHTML = fields.map(([key, label, hint]) => `
       <label class="coeff-field">${esc(label)}
         <input type="text" inputmode="decimal" data-coeff="${key}" data-calc value="${esc(genCoeffs[key])}" autocomplete="off">
@@ -1150,7 +1227,7 @@
   }
 
   function updateGenSummary(opts, secs) {
-    const total = secs.reduce((a, s) => a + s.items.reduce((b, it) => b + num(it.vol) * num(it.price), 0), 0);
+    const total = secs.reduce((a, s) => a + s.items.reduce((b, it) => b + itemTotal(it), 0), 0);
     const itemCount = secs.reduce((a, s) => a + s.items.length, 0);
     els.genTotal.textContent = rp(total);
     $('#btnGenSubmit').disabled = total <= 0;
@@ -1190,9 +1267,10 @@
     const secs = buildGeneratedSections(opts);
     updateGenSummary(opts, secs);
 
-    if (!$('#genFormulaPane').hidden && lastFormulaType !== opts.type) {
-      lastFormulaType = opts.type;
-      renderFormulaCoeffs(opts.type);
+    const formulaKey = `${opts.type}:${opts.workMode}`;
+    if (!$('#genFormulaPane').hidden && lastFormulaKey !== formulaKey) {
+      lastFormulaKey = formulaKey;
+      renderFormulaCoeffs(opts.type, opts.workMode);
     }
   }
 
@@ -1205,14 +1283,14 @@
     btn.setAttribute('aria-expanded', String(open));
     btn.textContent = open ? '✕ Tutup Rumus' : '⚙️ Lihat & Ubah Rumus';
     if (open) {
-      lastFormulaType = '';
+      lastFormulaKey = '';
       updateGenUI();
     }
   });
 
   $('#btnResetFormula').addEventListener('click', () => {
     genCoeffs = { ...DEFAULT_COEFFS };
-    lastFormulaType = '';
+    lastFormulaKey = '';
     updateGenUI();
     toast('Parameter rumus dikembalikan ke standar');
   });
@@ -1319,7 +1397,7 @@
     els.genForm.reset();
     setGenType('bangun');
     genCoeffs = { ...DEFAULT_COEFFS };
-    lastFormulaType = '';
+    lastFormulaKey = '';
     $('#genFormulaPane').hidden = true;
     els.genDialog.classList.remove('expanded');
     const btn = $('#btnToggleFormula');
@@ -1507,16 +1585,20 @@
 
     let rows = '';
     p.sections.forEach((s, i) => {
-      rows += `<tr style="background:#eef4fc;font-weight:bold;color:#032c69"><td align="center">${letter(i)}</td><td colspan="5">${esc(s.name || 'Tanpa nama')}</td></tr>`;
+      rows += `<tr style="background:#eef4fc;font-weight:bold;color:#032c69"><td align="center">${letter(i)}</td><td colspan="6">${esc(s.name || 'Tanpa nama')}</td></tr>`;
       s.items.forEach((it, j) => {
-        const sub = Math.round(num(it.vol) * num(it.price));
-        rows += `<tr><td align="center">${j + 1}</td><td>${esc(it.desc)}</td><td align="right" style="${vFmt}">${num(it.vol)}</td><td align="center">${esc(it.unit)}</td><td align="right" style="${nFmt}">${Math.round(num(it.price))}</td><td align="right" style="${nFmt}">${sub}</td></tr>`;
+        const sub = Math.round(itemTotal(it));
+        rows += `<tr><td align="center">${j + 1}</td><td>${esc(it.desc)}</td><td align="right" style="${vFmt}">${num(it.vol)}</td><td align="center">${esc(it.unit)}</td><td align="right" style="${nFmt}">${Math.round(num(it.price))}</td><td align="right" style="${nFmt}">${Math.round(num(it.labor))}</td><td align="right" style="${nFmt}">${sub}</td></tr>`;
       });
-      rows += `<tr style="font-weight:bold;font-style:italic;background:#fafafa"><td></td><td colspan="4">Subtotal ${letter(i)}</td><td align="right" style="${nFmt}">${Math.round(c.secs[i])}</td></tr>`;
+      rows += `<tr style="font-weight:bold;font-style:italic;background:#fafafa"><td></td><td colspan="5">Subtotal ${letter(i)}</td><td align="right" style="${nFmt}">${Math.round(c.secs[i])}</td></tr>`;
     });
 
-    const rRow = (label, val, style = '') => `<tr style="${style}"><td colspan="5">${esc(label)}</td><td align="right" style="${nFmt}">${Math.round(val)}</td></tr>`;
+    const rRow = (label, val, style = '') => `<tr style="${style}"><td colspan="6">${esc(label)}</td><td align="right" style="${nFmt}">${Math.round(val)}</td></tr>`;
     let recap = p.sections.map((s, i) => rRow(`${letter(i)}. ${s.name || 'Tanpa nama'}`, c.secs[i])).join('');
+    if (c.laborTotal > 0 && c.matTotal > 0) {
+      recap += rRow('Subtotal Bahan', c.matTotal);
+      recap += rRow('Subtotal Upah Tukang', c.laborTotal);
+    }
     recap += rRow('TOTAL PEKERJAAN', c.subtotal, 'font-weight:bold;background:#f5f7fa');
     if (num(p.contingency)) recap += rRow(`Biaya tak terduga (${num(p.contingency)}%)`, c.cont);
     if (num(p.profit)) recap += rRow(`Jasa kontraktor (${num(p.profit)}%)`, c.profit);
@@ -1552,16 +1634,16 @@
   </table>
   <br>
   <table class="tbl">
-    <thead><tr><th>No</th><th>Uraian Pekerjaan</th><th>Volume</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Jumlah (Rp)</th></tr></thead>
+    <thead><tr><th>No</th><th>Uraian Pekerjaan</th><th>Volume</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Upah Tukang (Rp)</th><th>Jumlah (Rp)</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <br>
   <table class="tbl">
-    <thead><tr><th colspan="6" align="left">REKAPITULASI</th></tr></thead>
+    <thead><tr><th colspan="7" align="left">REKAPITULASI</th></tr></thead>
     <tbody>
       ${recap}
-      <tr><td colspan="6" style="font-style:italic">Terbilang: <b>${esc(terbilang(c.rounded))}</b></td></tr>
-      ${area > 0 && c.total > 0 ? `<tr><td colspan="6">Biaya per m² bangunan: ± ${rp(c.total / area)}</td></tr>` : ''}
+      <tr><td colspan="7" style="font-style:italic">Terbilang: <b>${esc(terbilang(c.rounded))}</b></td></tr>
+      ${area > 0 && c.total > 0 ? `<tr><td colspan="7">Biaya per m² bangunan: ± ${rp(c.total / area)}</td></tr>` : ''}
     </tbody>
   </table>
   <br>
@@ -1583,15 +1665,19 @@
     const c = calc(p);
     let rows = '';
     p.sections.forEach((s, i) => {
-      rows += `<tr class="p-sec"><td class="c">${letter(i)}</td><td colspan="5">${esc(s.name || 'Tanpa nama')}</td></tr>`;
+      rows += `<tr class="p-sec"><td class="c">${letter(i)}</td><td colspan="6">${esc(s.name || 'Tanpa nama')}</td></tr>`;
       s.items.forEach((it, j) => {
-        rows += `<tr><td class="c">${j + 1}</td><td>${esc(it.desc)}</td><td class="r">${fmtVol(it.vol)}</td><td class="c">${esc(it.unit)}</td><td class="r">${fmt(it.price)}</td><td class="r">${fmt(num(it.vol) * num(it.price))}</td></tr>`;
+        rows += `<tr><td class="c">${j + 1}</td><td>${esc(it.desc)}</td><td class="r">${fmtVol(it.vol)}</td><td class="c">${esc(it.unit)}</td><td class="r">${fmt(it.price)}</td><td class="r">${fmt(it.labor)}</td><td class="r">${fmt(itemTotal(it))}</td></tr>`;
       });
-      rows += `<tr class="p-sub"><td></td><td colspan="4">Subtotal ${letter(i)}</td><td class="r">${fmt(c.secs[i])}</td></tr>`;
+      rows += `<tr class="p-sub"><td></td><td colspan="5">Subtotal ${letter(i)}</td><td class="r">${fmt(c.secs[i])}</td></tr>`;
     });
 
     const rr = (label, val, cls = '') => `<tr class="${cls}"><td>${esc(label)}</td><td class="r">${rp(val)}</td></tr>`;
     let recap = p.sections.map((s, i) => rr(`${letter(i)}. ${s.name || 'Tanpa nama'}`, c.secs[i])).join('');
+    if (c.laborTotal > 0 && c.matTotal > 0) {
+      recap += rr('Subtotal Bahan', c.matTotal);
+      recap += rr('Subtotal Upah Tukang', c.laborTotal);
+    }
     recap += rr('Total Pekerjaan', c.subtotal, 'p-total');
     if (num(p.contingency)) recap += rr(`Biaya tak terduga (${num(p.contingency)}%)`, c.cont);
     if (num(p.profit)) recap += rr(`Jasa kontraktor (${num(p.profit)}%)`, c.profit);
@@ -1616,7 +1702,7 @@
         ${area > 0 ? `<tr><td>Luas bangunan</td><td>: ${fmtVol(area)} m²</td></tr>` : ''}
       </table>
       <table class="p-table">
-        <thead><tr><th style="width:6%">No</th><th>Uraian Pekerjaan</th><th style="width:9%">Volume</th><th style="width:8%">Satuan</th><th style="width:16%">Harga Satuan (Rp)</th><th style="width:17%">Jumlah (Rp)</th></tr></thead>
+        <thead><tr><th style="width:5%">No</th><th>Uraian Pekerjaan</th><th style="width:8%">Volume</th><th style="width:8%">Satuan</th><th style="width:14%">Harga Satuan (Rp)</th><th style="width:14%">Upah Tukang (Rp)</th><th style="width:15%">Jumlah (Rp)</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="p-recap">

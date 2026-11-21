@@ -302,26 +302,52 @@
         </div>
       </div>
 
-      <div class="field">
-        <span>Kelas material &amp; finishing</span>
-        <div class="choice-grid cols-3">
-          <label class="choice">
-            <input type="radio" name="tier" value="ekonomis">
-            <strong>Ekonomis</strong>
-            <small id="tierDescEco">Keramik 40×40, baja ringan, cat standar</small>
-          </label>
-          <label class="choice">
-            <input type="radio" name="tier" value="standar" checked>
-            <strong>Standar</strong>
-            <small id="tierDescStd">Granit 60×60, aluminium, cat menengah</small>
-          </label>
-          <label class="choice">
-            <input type="radio" name="tier" value="premium">
-            <strong>Menengah-Atas</strong>
-            <small id="tierDescPre">Material pilihan, sanitair &amp; finishing rapi</small>
-          </label>
-        </div>
-      </div>
+          <div class="field">
+            <span>Kelas material &amp; finishing</span>
+            <div class="choice-grid cols-3">
+              <label class="choice">
+                <input type="radio" name="tier" value="ekonomis">
+                <strong>Ekonomis</strong>
+                <small id="tierDescEco">Keramik 40×40, baja ringan, cat standar</small>
+              </label>
+              <label class="choice">
+                <input type="radio" name="tier" value="standar" checked>
+                <strong>Standar</strong>
+                <small id="tierDescStd">Granit 60×60, aluminium, cat menengah</small>
+              </label>
+              <label class="choice">
+                <input type="radio" name="tier" value="premium">
+                <strong>Menengah-Atas</strong>
+                <small id="tierDescPre">Material pilihan, sanitair &amp; finishing rapi</small>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <span>Sistem pengerjaan</span>
+            <div class="choice-grid cols-2">
+              <label class="choice">
+                <input type="radio" name="workMode" value="borongan" checked>
+                <strong>Borongan Penuh</strong>
+                <small>Bahan + upah tukang jadi satu</small>
+              </label>
+              <label class="choice">
+                <input type="radio" name="workMode" value="pisah">
+                <strong>Pisah Bahan + Upah Harian</strong>
+                <small>Bahan per item + Tukang Harian (org/hari)</small>
+              </label>
+              <label class="choice">
+                <input type="radio" name="workMode" value="pisah_satuan">
+                <strong>Pisah Bahan &amp; Upah per Item</strong>
+                <small>Kolom Harga Bahan + Upah Tukang terpisah</small>
+              </label>
+              <label class="choice">
+                <input type="radio" name="workMode" value="jasa">
+                <strong>Upah Tukang Saja</strong>
+                <small>Khusus ongkos kerja per satuan tanpa bahan</small>
+              </label>
+            </div>
+          </div>
 
       <div class="field" id="genModeField" hidden>
         <span>Daftar pekerjaan sudah terisi</span>
@@ -374,6 +400,7 @@
     <option value="m²"></option>
     <option value="m³"></option>
     <option value="m'"></option>
+    <option value="dos"></option>
     <option value="unit"></option>
     <option value="bh"></option>
     <option value="titik"></option>

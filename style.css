@@ -702,8 +702,8 @@ h2 {
 .item-head,
 .item {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr) 84px 88px 140px 128px 36px;
-    gap: 8px;
+    grid-template-columns: 24px minmax(0, 1fr) 68px 72px 116px 116px 116px 32px;
+    gap: 6px;
     align-items: center;
 }
 
@@ -773,7 +773,8 @@ body.is-dragging {
 }
 
 .c-vol input,
-.c-price input {
+.c-price input,
+.c-labor input {
     text-align: right;
     font-variant-numeric: tabular-nums;
 }
@@ -1002,10 +1003,7 @@ dialog.expanded .gen-split {
     border-radius: 14px;
     background: #f8fafc;
     border: 1px solid var(--line);
-    min-height: 0;
     height: 100%;
-    max-height: 68vh;
-    overflow: auto;
 }
 
 .formula-top {
@@ -1659,7 +1657,7 @@ dialog h2 {
     .item {
         position: relative;
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-areas: "desc desc" "vol unit" "price price" "total total";
+        grid-template-areas: "desc desc" "vol unit" "price labor" "total total";
         gap: 8px 10px;
         padding: 12px;
         margin-top: 10px;
@@ -1684,6 +1682,10 @@ dialog h2 {
 
     .c-price {
         grid-area: price;
+    }
+
+    .c-labor {
+        grid-area: labor;
     }
 
     .c-total {
@@ -1720,7 +1722,8 @@ dialog h2 {
     }
 
     .c-vol input,
-    .c-price input {
+    .c-price input,
+    .c-labor input {
         text-align: left;
     }
 }
