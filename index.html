@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ER•AB — Estimasi Rencana Anggaran Biaya</title>
+  <meta name="description" content="Buat Rencana Anggaran Biaya (RAB) bangun rumah atau renovasi dengan mudah. Gratis, tanpa daftar, tersimpan otomatis.">
+  <meta name="theme-color" content="#d3ff5e">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">🏠</span>
+        <div>
+          <strong>ER•AB</strong>
+          <small>Hitung biaya bangun &amp; renovasi rumah</small>
+        </div>
+      </div>
+      <div class="project-switch">
+        <label for="projectSelect" class="sr-only">Pilih proyek</label>
+        <select id="projectSelect" title="Pilih proyek"></select>
+        <button type="button" class="btn btn-primary" id="btnNew">+ RAB Baru</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <div class="content">
+      <!-- 1. Info proyek -->
+      <section class="card">
+        <h2><span class="step">1</span>Info Proyek</h2>
+        <p class="muted">Data ini akan tampil di bagian atas dokumen RAB.</p>
+        <div class="form-grid">
+          <label class="field span-2">Nama proyek
+            <input data-field="name" placeholder="mis. Bangun Rumah Pak Budi" autocomplete="off">
+          </label>
+          <label class="field">Nama pemilik
+            <input data-field="owner" placeholder="mis. Budi Santoso" autocomplete="name">
+          </label>
+          <label class="field">Lokasi
+            <input data-field="location" placeholder="mis. Kendari, Sulawesi Tenggara" autocomplete="off">
+          </label>
+          <label class="field">Tanggal
+            <input data-field="date" type="date">
+          </label>
+          <label class="field">Luas bangunan (m²) <span class="hint">Opsional — untuk melihat biaya per m²</span>
+            <input data-field="area" type="number" inputmode="decimal" min="0" step="any" placeholder="mis. 45">
+          </label>
+        </div>
+      </section>
+
+      <!-- 2. Daftar pekerjaan -->
+      <section>
+        <div class="section-head">
+          <h2><span class="step">2</span>Daftar Pekerjaan</h2>
+          <p class="muted">Isi <b>volume</b> dan <b>harga satuan</b>. Jumlah dihitung otomatis.</p>
+        </div>
+        <div id="sections"></div>
+        <button type="button" class="btn btn-dashed" id="btnAddSection">+ Tambah Kelompok Pekerjaan</button>
+      </section>
+
+      <!-- 3. Biaya tambahan -->
+      <section class="card">
+        <h2><span class="step">3</span>Biaya Tambahan <span class="muted small">(opsional)</span></h2>
+        <p class="muted">Dihitung dalam persen (%) dari total pekerjaan. Isi 0 jika tidak dipakai.</p>
+        <div class="form-grid cols-3">
+          <label class="field">Biaya tak terduga (%)
+            <span class="hint">Cadangan jika harga naik / ada tambahan</span>
+            <input data-field="contingency" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+          </label>
+          <label class="field">Jasa kontraktor (%)
+            <span class="hint">Jika memakai pemborong</span>
+            <input data-field="profit" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+          </label>
+          <label class="field">PPN / Pajak (%)
+            <span class="hint">Biasanya 11% jika ada faktur</span>
+            <input data-field="tax" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <!-- Ringkasan -->
+    <aside class="summary" id="summary">
+      <div class="card summary-card">
+        <p class="muted small upper">Total Anggaran</p>
+        <p class="grand" id="grandTotal">Rp 0</p>
+        <p class="muted small" id="rounded"></p>
+        <p class="per-m2" id="perM2" hidden></p>
+        <div class="recap" id="recap"></div>
+        <div class="summary-actions">
+          <button type="button" class="btn btn-primary btn-block" id="btnPrint">🖨️ Cetak / Simpan PDF</button>
+          <button type="button" class="btn btn-block" id="btnCsv">📊 Unduh untuk Excel</button>
+        </div>
+        <div class="summary-links">
+          <button type="button" class="link" id="btnBackup">Simpan cadangan</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" class="link" id="btnRestore">Buka cadangan</button>
+          <span aria-hidden="true">·</span>
+          <button type="button" class="link danger" id="btnDelete">Hapus RAB</button>
+        </div>
+        <p class="saved" id="savedState" role="status">✓ Tersimpan otomatis di perangkat ini</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p>&copy; <span id="year">2026</span> <strong>ER•AB</strong> &middot; <a href="https://jproject.id" target="_blank" rel="noopener noreferrer">jproject.id</a></p>
+    </div>
+  </footer>
+
+  <div class="mobile-bar">
+    <div>
+      <small class="muted">Total anggaran</small>
+      <strong id="mobileTotal">Rp 0</strong>
+    </div>
+    <button type="button" class="btn btn-primary" id="btnGoSummary">Ringkasan</button>
+  </div>
+
+  <dialog id="newDialog" aria-labelledby="newTitle">
+    <form method="dialog" id="newForm">
+      <h2 id="newTitle">Buat RAB Baru</h2>
+      <p class="muted">Masukkan nama proyek untuk memulai RAB kosong.</p>
+      <label class="field">Nama proyek
+        <input name="name" placeholder="mis. Rumah Pak Budi" autocomplete="off">
+      </label>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" class="btn" formnovalidate>Batal</button>
+        <button type="submit" value="ok" class="btn btn-primary">Buat RAB</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div id="printArea"></div>
+  <input type="file" id="fileInput" accept=".json,application/json" hidden>
+
+  <datalist id="unitList">
+    <option value="m²"></option>
+    <option value="m³"></option>
+    <option value="m'"></option>
+    <option value="unit"></option>
+    <option value="bh"></option>
+    <option value="titik"></option>
+    <option value="set"></option>
+    <option value="ls"></option>
+    <option value="rit"></option>
+    <option value="kg"></option>
+    <option value="zak"></option>
+    <option value="btg"></option>
+    <option value="lbr"></option>
+    <option value="hari"></option>
+    <option value="org/hari"></option>
+  </datalist>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
