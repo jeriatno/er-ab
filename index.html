@@ -5,24 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ER•AB — Estimasi Rencana Anggaran Biaya</title>
   <meta name="description" content="Buat Rencana Anggaran Biaya (RAB) bangun rumah atau renovasi dengan mudah. Gratis, tanpa daftar, tersimpan otomatis.">
-  <meta name="theme-color" content="#d3ff5e">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏠</text></svg>">
+  <meta name="theme-color" content="#032c69">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="wrap topbar-inner">
       <div class="brand">
-        <span class="logo" aria-hidden="true">🏠</span>
-        <div>
-          <strong>ER•AB</strong>
-          <small>Hitung biaya bangun &amp; renovasi rumah</small>
-        </div>
+        <img class="brand-logo brand-logo-full" src="assets/logo-text.png" alt="ER•AB — Estimasi Rencana Anggaran Biaya">
+        <img class="brand-logo brand-logo-mark" src="assets/logo.png" alt="ER•AB">
       </div>
       <div class="project-switch">
-        <label for="projectSelect" class="sr-only">Pilih proyek</label>
-        <select id="projectSelect" title="Pilih proyek"></select>
-        <button type="button" class="btn btn-primary" id="btnNew">+ RAB Baru</button>
+        <div class="proj-dd" id="projDd">
+          <button type="button" class="proj-trigger" id="projTrigger" aria-haspopup="listbox" aria-expanded="false" title="Pilih proyek">
+            <span class="proj-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>
+            <span class="proj-current" id="projCurrent">Tanpa nama</span>
+            <span class="proj-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+          </button>
+          <div class="proj-menu" id="projMenu" hidden>
+            <div class="proj-search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input type="search" class="proj-search" id="projSearch" placeholder="Cari proyek, pemilik, lokasi…" autocomplete="off" aria-label="Cari proyek">
+            </div>
+            <div class="proj-list" id="projList" role="listbox" aria-label="Daftar proyek"></div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" id="btnNew">+ <span class="hide-sm">RAB </span>Baru</button>
       </div>
     </div>
   </header>
@@ -30,55 +40,79 @@
   <main class="wrap layout">
     <div class="content">
       <!-- 1. Info proyek -->
-      <section class="card">
-        <h2><span class="step">1</span>Info Proyek</h2>
-        <p class="muted">Data ini akan tampil di bagian atas dokumen RAB.</p>
-        <div class="form-grid">
-          <label class="field span-2">Nama proyek
-            <input data-field="name" placeholder="mis. Bangun Rumah Pak Budi" autocomplete="off">
-          </label>
-          <label class="field">Nama pemilik
-            <input data-field="owner" placeholder="mis. Budi Santoso" autocomplete="name">
-          </label>
-          <label class="field">Lokasi
-            <input data-field="location" placeholder="mis. Kendari, Sulawesi Tenggara" autocomplete="off">
-          </label>
-          <label class="field">Tanggal
-            <input data-field="date" type="date">
-          </label>
-          <label class="field">Luas bangunan (m²) <span class="hint">Opsional — untuk melihat biaya per m²</span>
-            <input data-field="area" type="number" inputmode="decimal" min="0" step="any" placeholder="mis. 45">
-          </label>
+      <section class="card collapsible">
+        <button type="button" class="card-head" data-card-toggle aria-expanded="true">
+          <div>
+            <h2><span class="step">1</span>Info Proyek</h2>
+            <p class="muted">Data ini akan tampil di bagian atas dokumen RAB.</p>
+          </div>
+          <span class="card-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="card-body">
+          <div class="form-grid">
+            <label class="field span-2">Nama proyek
+              <input data-field="name" placeholder="mis. Bangun Rumah Pak Budi" autocomplete="off">
+            </label>
+            <label class="field">Nama pemilik
+              <input data-field="owner" placeholder="mis. Budi Santoso" autocomplete="name">
+            </label>
+            <label class="field">Lokasi
+              <input data-field="location" placeholder="mis. Kendari, Sulawesi Tenggara" autocomplete="off">
+            </label>
+            <label class="field">Tanggal
+              <input data-field="date" type="date">
+            </label>
+            <label class="field">Luas bangunan (m²)
+              <input data-field="area" data-calc type="text" inputmode="decimal" placeholder="mis. 45 atau 6*7.5" autocomplete="off">
+              <span class="hint">Opsional — untuk melihat biaya per m²</span>
+            </label>
+          </div>
         </div>
       </section>
 
       <!-- 2. Daftar pekerjaan -->
-      <section>
+      <section class="card work-card" id="workCard">
         <div class="section-head">
-          <h2><span class="step">2</span>Daftar Pekerjaan</h2>
-          <p class="muted">Isi <b>volume</b> dan <b>harga satuan</b>. Jumlah dihitung otomatis.</p>
+          <div>
+            <h2><span class="step">2</span>Daftar Pekerjaan</h2>
+            <p class="muted">Isi <b>volume</b> dan <b>harga satuan</b>, atau buat cepat lewat generator otomatis.</p>
+          </div>
+          <div class="section-actions">
+            <span class="fs-total" id="fsTotal" hidden>Rp 0</span>
+            <button type="button" class="btn btn-accent" id="btnGen">✨ Generate Otomatis</button>
+            <button type="button" class="btn btn-fs" id="btnFullscreen" aria-pressed="false" aria-label="Mode layar penuh" title="Mode layar penuh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
+          </div>
         </div>
         <div id="sections"></div>
         <button type="button" class="btn btn-dashed" id="btnAddSection">+ Tambah Kelompok Pekerjaan</button>
       </section>
 
       <!-- 3. Biaya tambahan -->
-      <section class="card">
-        <h2><span class="step">3</span>Biaya Tambahan <span class="muted small">(opsional)</span></h2>
-        <p class="muted">Dihitung dalam persen (%) dari total pekerjaan. Isi 0 jika tidak dipakai.</p>
-        <div class="form-grid cols-3">
-          <label class="field">Biaya tak terduga (%)
-            <span class="hint">Cadangan jika harga naik / ada tambahan</span>
-            <input data-field="contingency" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
-          </label>
-          <label class="field">Jasa kontraktor (%)
-            <span class="hint">Jika memakai pemborong</span>
-            <input data-field="profit" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
-          </label>
-          <label class="field">PPN / Pajak (%)
-            <span class="hint">Biasanya 11% jika ada faktur</span>
-            <input data-field="tax" type="number" inputmode="decimal" min="0" step="any" placeholder="0">
-          </label>
+      <section class="card collapsible">
+        <button type="button" class="card-head" data-card-toggle aria-expanded="true">
+          <div>
+            <h2><span class="step">3</span>Biaya Tambahan <span class="muted small">(opsional)</span></h2>
+            <p class="muted">Dihitung dalam persen (%) dari total pekerjaan. Isi 0 jika tidak dipakai.</p>
+          </div>
+          <span class="card-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+        </button>
+        <div class="card-body">
+          <div class="form-grid cols-3">
+            <label class="field">Biaya tak terduga (%)
+              <span class="hint">Cadangan jika harga naik / ada tambahan</span>
+              <input data-field="contingency" data-calc type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+            </label>
+            <label class="field">Jasa kontraktor (%)
+              <span class="hint">Jika memakai pemborong</span>
+              <input data-field="profit" data-calc type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+            </label>
+            <label class="field">PPN / Pajak (%)
+              <span class="hint">Biasanya 11% jika ada faktur</span>
+              <input data-field="tax" data-calc type="text" inputmode="decimal" placeholder="0" autocomplete="off">
+            </label>
+          </div>
         </div>
       </section>
     </div>
@@ -86,13 +120,18 @@
     <!-- Ringkasan -->
     <aside class="summary" id="summary">
       <div class="card summary-card">
-        <p class="muted small upper">Total Anggaran</p>
+        <div class="summary-top">
+          <p class="muted small upper">Total Anggaran</p>
+          <button type="button" class="icon-btn" id="btnHideAmount" aria-pressed="false" aria-label="Sembunyikan nominal" title="Sembunyikan nominal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
         <p class="grand" id="grandTotal">Rp 0</p>
         <p class="muted small" id="rounded"></p>
         <p class="per-m2" id="perM2" hidden></p>
         <div class="recap" id="recap"></div>
         <div class="summary-actions">
-          <button type="button" class="btn btn-primary btn-block" id="btnPrint">🖨️ Cetak / Simpan PDF</button>
+          <button type="button" class="btn btn-accent btn-block" id="btnPrint">🖨️ Cetak / Simpan PDF</button>
           <button type="button" class="btn btn-block" id="btnCsv">📊 Unduh untuk Excel</button>
         </div>
         <div class="summary-links">
@@ -109,7 +148,7 @@
 
   <footer class="footer">
     <div class="wrap">
-      <p>&copy; <span id="year">2026</span> <strong>ER•AB</strong> &middot; <a href="https://jproject.id" target="_blank" rel="noopener noreferrer">jproject.id</a></p>
+      <p>&copy; <span id="year">2026</span> <strong>ER•AB</strong> by <a href="https://jproject.id" target="_blank" rel="noopener noreferrer">jproject.id</a></p>
     </div>
   </footer>
 
@@ -118,7 +157,7 @@
       <small class="muted">Total anggaran</small>
       <strong id="mobileTotal">Rp 0</strong>
     </div>
-    <button type="button" class="btn btn-primary" id="btnGoSummary">Ringkasan</button>
+    <button type="button" class="btn btn-accent" id="btnGoSummary">Ringkasan</button>
   </div>
 
   <dialog id="newDialog" aria-labelledby="newTitle">
@@ -131,6 +170,198 @@
       <div class="dialog-actions">
         <button type="submit" value="cancel" class="btn" formnovalidate>Batal</button>
         <button type="submit" value="ok" class="btn btn-primary">Buat RAB</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="genDialog" class="dialog-lg" aria-labelledby="genTitle">
+    <form method="dialog" id="genForm">
+      <div class="gen-head">
+        <div>
+          <h2 id="genTitle">✨ Generate RAB Otomatis</h2>
+          <p class="muted">Isi data singkat di bawah. Semua volume dan harga tetap bisa Anda ubah.</p>
+        </div>
+        <button type="button" class="btn btn-formula" id="btnToggleFormula" aria-expanded="false">⚙️ Lihat &amp; Ubah Rumus</button>
+      </div>
+
+      <div class="gen-split">
+        <div class="gen-main">
+          <div class="field">
+            <span>Jenis proyek</span>
+            <input type="hidden" name="type" id="genTypeInput" value="bangun">
+            <div class="type-dd" id="typeDd">
+              <button type="button" class="proj-trigger type-trigger" id="typeTrigger" aria-haspopup="listbox" aria-expanded="false">
+                <span class="type-current" id="typeCurrent">🏠 Bangun Rumah Baru</span>
+                <span class="proj-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
+              </button>
+              <div class="proj-menu type-menu" id="typeMenu" hidden>
+                <div class="proj-search-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                  <input type="search" class="proj-search" id="typeSearch" placeholder="Cari jenis pekerjaan…" autocomplete="off" aria-label="Cari jenis proyek">
+                </div>
+                <div class="proj-list" id="typeList" role="listbox" aria-label="Daftar jenis proyek"></div>
+              </div>
+            </div>
+          </div>
+
+      <div class="gen-grid" id="genHouseFields">
+        <label class="field">Luas bangunan / area (m²)
+          <input name="area" data-calc type="text" inputmode="decimal" placeholder="mis. 45 atau 6*7.5" autocomplete="off">
+        </label>
+        <label class="field" id="genFloorsField">Jumlah lantai
+          <select name="floors">
+            <option value="1" selected>1 Lantai</option>
+            <option value="2">2 Lantai</option>
+          </select>
+        </label>
+        <label class="field">Kamar tidur
+          <input name="bedrooms" data-calc type="text" inputmode="numeric" placeholder="mis. 2" autocomplete="off">
+        </label>
+        <label class="field">Kamar mandi
+          <input name="bathrooms" data-calc type="text" inputmode="numeric" placeholder="mis. 1" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="gen-grid" id="genTambahFields" hidden>
+        <label class="field">Panjang ruangan (m)
+          <input name="roomLen" data-calc type="text" inputmode="decimal" placeholder="mis. 4" autocomplete="off">
+        </label>
+        <label class="field">Lebar ruangan (m)
+          <input name="roomWidth" data-calc type="text" inputmode="decimal" placeholder="mis. 3" autocomplete="off">
+        </label>
+        <label class="field">Posisi ruangan baru
+          <select name="roomPos">
+            <option value="lantai1" selected>Lantai 1 / di tanah (pakai pondasi)</option>
+            <option value="lantai2">Lantai 2 / naik dak beton</option>
+          </select>
+        </label>
+        <label class="field">Fungsi ruangan
+          <select name="roomKind">
+            <option value="kamar" selected>Kamar tidur / ruang keluarga</option>
+            <option value="dapur">Dapur + meja cor</option>
+            <option value="km">Kamar mandi baru</option>
+          </select>
+        </label>
+        <div class="check-grid span-2">
+          <label class="check-chip"><input type="checkbox" name="roomRoof" checked><span>Termasuk atap baru</span></label>
+          <label class="check-chip"><input type="checkbox" name="roomConnect" checked><span>Bongkar sambungan dinding lama</span></label>
+        </div>
+      </div>
+
+      <div class="gen-grid" id="genPagarFields" hidden>
+        <label class="field">Panjang pagar (m)
+          <input name="fenceLen" data-calc type="text" inputmode="decimal" placeholder="mis. 15 atau 5+5+5" autocomplete="off">
+        </label>
+        <label class="field">Tinggi pagar (m)
+          <input name="fenceHeight" data-calc type="text" inputmode="decimal" placeholder="mis. 2" autocomplete="off">
+        </label>
+        <label class="field span-2">Model pagar
+          <select name="fenceStyle">
+            <option value="kombinasi" selected>Tembok bawah + besi hollow minimalis</option>
+            <option value="tembok">Tembok bata / hebel full</option>
+            <option value="besi">Besi hollow minimalis full</option>
+          </select>
+        </label>
+        <label class="check-chip span-2"><input type="checkbox" name="fenceGate" checked><span>Termasuk pintu gerbang (lipat / dorong ± 3,5 m)</span></label>
+      </div>
+
+      <div class="gen-grid" id="genKanopiFields" hidden>
+        <label class="field">Panjang kanopi (m)
+          <input name="canopyLen" data-calc type="text" inputmode="decimal" placeholder="mis. 5" autocomplete="off">
+        </label>
+        <label class="field">Lebar kanopi (m)
+          <input name="canopyWidth" data-calc type="text" inputmode="decimal" placeholder="mis. 3" autocomplete="off">
+        </label>
+        <label class="field">Jenis rangka
+          <select name="canopyFrame">
+            <option value="hollow" selected>Besi hollow galvanis</option>
+            <option value="bajaringan">Baja ringan</option>
+            <option value="wf">Besi WF / struktur berat</option>
+          </select>
+        </label>
+        <label class="field">Penutup atap
+          <select name="canopyRoof">
+            <option value="alderon" selected>Alderon / UPVC (adem &amp; tidak berisik)</option>
+            <option value="spandek">Spandek / spandek pasir</option>
+            <option value="poly">Polikarbonat / Solarflat</option>
+          </select>
+        </label>
+        <label class="check-chip span-2"><input type="checkbox" name="canopyGutter" checked><span>Termasuk talang air &amp; pipa pembuangan</span></label>
+      </div>
+
+      <div class="field" id="genScopesField" hidden>
+        <span>Bagian yang direnovasi</span>
+        <div class="check-grid">
+          <label class="check-chip"><input type="checkbox" name="scope" value="bongkar" checked><span>Bongkar &amp; dinding</span></label>
+          <label class="check-chip"><input type="checkbox" name="scope" value="lantai" checked><span>Ganti lantai</span></label>
+          <label class="check-chip"><input type="checkbox" name="scope" value="plafon" checked><span>Ganti plafon</span></label>
+          <label class="check-chip"><input type="checkbox" name="scope" value="km" checked><span>Kamar mandi</span></label>
+          <label class="check-chip"><input type="checkbox" name="scope" value="atap"><span>Ganti atap</span></label>
+          <label class="check-chip"><input type="checkbox" name="scope" value="listrik" checked><span>Listrik</span></label>
+          <label class="check-chip"><input type="checkbox" name="scope" value="cat" checked><span>Cat ulang</span></label>
+        </div>
+      </div>
+
+      <div class="field">
+        <span>Kelas material &amp; finishing</span>
+        <div class="choice-grid cols-3">
+          <label class="choice">
+            <input type="radio" name="tier" value="ekonomis">
+            <strong>Ekonomis</strong>
+            <small id="tierDescEco">Keramik 40×40, baja ringan, cat standar</small>
+          </label>
+          <label class="choice">
+            <input type="radio" name="tier" value="standar" checked>
+            <strong>Standar</strong>
+            <small id="tierDescStd">Granit 60×60, aluminium, cat menengah</small>
+          </label>
+          <label class="choice">
+            <input type="radio" name="tier" value="premium">
+            <strong>Menengah-Atas</strong>
+            <small id="tierDescPre">Material pilihan, sanitair &amp; finishing rapi</small>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="genModeField" hidden>
+        <span>Daftar pekerjaan sudah terisi</span>
+        <div class="choice-grid cols-2">
+          <label class="choice compact">
+            <input type="radio" name="mode" value="replace" checked>
+            <strong>Ganti daftar saat ini</strong>
+          </label>
+          <label class="choice compact">
+            <input type="radio" name="mode" value="append">
+            <strong>Tambahkan di bawahnya</strong>
+          </label>
+        </div>
+      </div>
+
+          <div class="gen-preview" id="genPreview">
+            <div>
+              <small class="muted">Perkiraan total pekerjaan</small>
+              <strong id="genTotal">Rp 0</strong>
+            </div>
+            <span class="gen-meta" id="genMeta"></span>
+          </div>
+        </div>
+
+        <aside class="gen-formula" id="genFormulaPane" hidden>
+          <div class="formula-top">
+            <div>
+              <strong>Parameter Rumus</strong>
+              <small class="muted">Sesuaikan pengali harga wilayah &amp; koefisien perhitungan.</small>
+            </div>
+            <button type="button" class="link" id="btnResetFormula">↺ Reset</button>
+          </div>
+          <div class="coeff-grid" id="genCoeffGrid"></div>
+          <p class="formula-note">Rincian tiap item, volume, dan harga satuan bisa langsung diedit, dihapus, atau digeser urutannya di <b>Daftar Pekerjaan</b> setelah dibuat.</p>
+        </aside>
+      </div>
+
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" class="btn" formnovalidate>Batal</button>
+        <button type="submit" value="ok" class="btn btn-primary" id="btnGenSubmit">Buat Rincian RAB</button>
       </div>
     </form>
   </dialog>
