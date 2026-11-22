@@ -133,7 +133,7 @@
         name: str(s.name),
         collapsed: !!s.collapsed,
         items: (Array.isArray(s.items) ? s.items : []).map((it) => ({
-          id: uid(), desc: str(it.desc), vol: str(it.vol), unit: str(it.unit), price: num(it.price), labor: num(it.labor),
+          id: uid(), desc: str(it.desc), vol: str(it.vol), unit: str(it.unit), price: num(it.price) + num(it.labor),
         })),
       })),
       updatedAt: Date.now(),
@@ -200,18 +200,17 @@
   window.addEventListener('pagehide', () => { if (saveTimer) flush(); });
 
   // ---------- Perhitungan ----------
-  const itemTotal = (it) => num(it.vol) * (num(it.price) + num(it.labor));
+  const itemTotal = (it) => num(it.vol) * num(it.price);
+  const isLaborItem = (it) => /\b(upah|tukang|kenek|mandor|ongkos|tenaga kerja)\b/i.test(String(it.desc || '')) || String(it.unit || '').trim().toLowerCase() === 'org/hari';
 
   function calc(p) {
     let matTotal = 0;
     let laborTotal = 0;
     const secs = p.sections.map((s) => s.items.reduce((a, it) => {
-      const v = num(it.vol);
-      const m = v * num(it.price);
-      const l = v * num(it.labor);
-      matTotal += m;
-      laborTotal += l;
-      return a + m + l;
+      const t = itemTotal(it);
+      if (isLaborItem(it)) laborTotal += t;
+      else matTotal += t;
+      return a + t;
     }, 0));
     const subtotal = secs.reduce((a, b) => a + b, 0);
     const cont = subtotal * num(p.contingency) / 100;
@@ -231,13 +230,12 @@
   };
 
   function itemHTML(it) {
-    return `<div class="item" data-iid="${it.id}">
+    return `<div class="item${isLaborItem(it) ? ' is-labor' : ''}" data-iid="${it.id}">
       <button type="button" class="icon-btn drag-handle" data-drag="item" title="Geser untuk atur urutan" aria-label="Geser untuk atur urutan">${ICON.grip}</button>
-      <label class="cell c-desc"><span class="cell-label">Uraian pekerjaan</span><input data-ifield="desc" value="${esc(it.desc)}" placeholder="mis. Pasang keramik lantai" aria-label="Uraian pekerjaan" autocomplete="off"></label>
+      <label class="cell c-desc"><span class="cell-label">Uraian pekerjaan</span><input data-ifield="desc" list="masterItemList" value="${esc(it.desc)}" placeholder="mis. Pasang keramik lantai atau pilih dari master" aria-label="Uraian pekerjaan" autocomplete="off"></label>
       <label class="cell c-vol"><span class="cell-label">Volume</span><input data-ifield="vol" inputmode="decimal" value="${esc(it.vol)}" placeholder="0" aria-label="Volume" autocomplete="off"></label>
       <label class="cell c-unit"><span class="cell-label">Satuan</span><input data-ifield="unit" list="unitList" value="${esc(it.unit)}" placeholder="m²" aria-label="Satuan" autocomplete="off"></label>
-      <label class="cell c-price"><span class="cell-label">Harga satuan (Rp)</span><input data-ifield="price" inputmode="numeric" value="${it.price ? fmt(it.price) : ''}" placeholder="0" aria-label="Harga satuan atau bahan dalam rupiah" autocomplete="off"></label>
-      <label class="cell c-labor"><span class="cell-label">Upah tukang (Rp)</span><input data-ifield="labor" inputmode="numeric" value="${it.labor ? fmt(it.labor) : ''}" placeholder="0" aria-label="Upah tukang per satuan dalam rupiah" autocomplete="off"></label>
+      <label class="cell c-price"><span class="cell-label">Harga satuan (Rp)</span><input data-ifield="price" inputmode="numeric" value="${it.price ? fmt(it.price) : ''}" placeholder="0" aria-label="Harga satuan dalam rupiah" autocomplete="off"></label>
       <div class="cell c-total"><span class="cell-label">Jumlah</span><output data-itotal>Rp 0</output></div>
       <button type="button" class="icon-btn danger c-del" data-act="del-item" title="Hapus item" aria-label="Hapus item">${ICON.x}</button>
     </div>`;
@@ -254,7 +252,7 @@
         <button type="button" class="icon-btn danger" data-act="del-section" title="Hapus kelompok" aria-label="Hapus kelompok">${ICON.trash}</button>
       </div>
       <div class="sec-body">
-        <div class="item-head" aria-hidden="true"><span></span><span>Uraian pekerjaan</span><span>Volume</span><span>Satuan</span><span>Harga satuan (Rp)</span><span>Upah tukang (Rp)</span><span class="r">Jumlah</span><span></span></div>
+        <div class="item-head" aria-hidden="true"><span></span><span>Uraian pekerjaan</span><span>Volume</span><span>Satuan</span><span>Harga satuan (Rp)</span><span class="r">Jumlah</span><span></span></div>
         <div class="items">${s.items.map(itemHTML).join('')}</div>
         <button type="button" class="btn btn-ghost add-item" data-act="add-item">+ Tambah item</button>
       </div>
@@ -307,7 +305,7 @@
     const p = cur();
     els.sections.innerHTML = p.sections.length
       ? p.sections.map(sectionHTML).join('')
-      : '<div class="empty">Belum ada pekerjaan. Klik <b>✨ Generate Otomatis</b> di atas atau tombol di bawah untuk menambah manual.</div>';
+      : '<div class="empty">Belum ada pekerjaan. Klik <b>Generate Otomatis</b> di atas atau tombol di bawah untuk menambah manual.</div>';
   }
 
   function renderTotals() {
@@ -348,7 +346,7 @@
     const row = (label, val, cls = '', maskable = false) => `<div class="recap-row ${cls}"><span title="${esc(label)}">${esc(label)}</span><span>${maskable ? showVal(val) : rp(val)}</span></div>`;
     let html = p.sections.map((s, i) => row(`${letter(i)}. ${s.name || 'Tanpa nama'}`, c.secs[i])).join('');
     if (c.laborTotal > 0 && c.matTotal > 0) {
-      html += row('Subtotal bahan', c.matTotal);
+      html += row('Subtotal material / bahan', c.matTotal);
       html += row('Subtotal upah tukang', c.laborTotal);
     }
     html += row('Total pekerjaan', c.subtotal, 'strong', true);
@@ -387,7 +385,7 @@
 
   function commitCalc(t) {
     if (!(t instanceof HTMLInputElement)) return false;
-    const isPrice = t.dataset.ifield === 'price' || t.dataset.ifield === 'labor' || t.hasAttribute('data-fprice');
+    const isPrice = t.dataset.ifield === 'price' || t.hasAttribute('data-fprice');
     const isVol = t.dataset.ifield === 'vol';
     const isCalc = isPrice || isVol || t.hasAttribute('data-calc');
     if (!isCalc || !HAS_OP.test(t.value)) return false;
@@ -408,7 +406,7 @@
       t.value = n ? fmt(n) : '';
       const s = p && p.sections.find((x) => x.id === t.closest('[data-sid]')?.dataset.sid);
       const it = s && s.items.find((x) => x.id === t.closest('[data-iid]')?.dataset.iid);
-      if (it) { it[t.dataset.ifield] = n; renderTotals(); save(); }
+      if (it) { it.price = n; renderTotals(); save(); }
     } else if (isVol) {
       const str = cleanNum(res);
       t.value = str;
@@ -473,9 +471,25 @@
     } else if (t.dataset.ifield) {
       const it = s.items.find((x) => x.id === t.closest('[data-iid]').dataset.iid);
       const f = t.dataset.ifield;
-      if (f === 'price' || f === 'labor') it[f] = moneyInput(t);
+      if (f === 'price') it.price = moneyInput(t);
       else if (f === 'vol') { t.value = t.value.replace(/[^\d.,+\-*/×÷xX:()\s]/g, ''); it.vol = t.value; }
-      else it[f] = t.value;
+      else {
+        it[f] = t.value;
+        const rowEl = t.closest('.item');
+        if (f === 'desc') {
+          const m = findMasterByName(t.value);
+          if (m) {
+            it.unit = m.unit;
+            it.price = m.price;
+            it.mkey = m.key;
+            const unitIn = rowEl.querySelector('[data-ifield="unit"]');
+            const priceIn = rowEl.querySelector('[data-ifield="price"]');
+            if (unitIn) unitIn.value = m.unit;
+            if (priceIn) priceIn.value = m.price ? fmt(m.price) : '';
+          }
+        }
+        rowEl.classList.toggle('is-labor', isLaborItem(it));
+      }
     }
     renderTotals();
     save();
@@ -605,7 +619,7 @@
         break;
 
       case 'add-item': {
-        const it = { id: uid(), desc: '', vol: '', unit: '', price: 0, labor: 0 };
+        const it = { id: uid(), desc: '', vol: '', unit: '', price: 0 };
         s.items.push(it);
         secEl.querySelector('.items').insertAdjacentHTML('beforeend', itemHTML(it));
         secEl.querySelector(`[data-iid="${it.id}"] input`).focus();
@@ -639,7 +653,7 @@
 
   $('#btnAddSection').addEventListener('click', () => {
     const p = cur();
-    const s = { id: uid(), name: '', collapsed: false, items: [{ id: uid(), desc: '', vol: '', unit: '', price: 0, labor: 0 }] };
+    const s = { id: uid(), name: '', collapsed: false, items: [{ id: uid(), desc: '', vol: '', unit: '', price: 0 }] };
     p.sections.push(s);
     renderSections();
     renderTotals();
@@ -649,16 +663,188 @@
     input.focus({ preventScroll: true });
   });
 
+  // ---------- Master Harga Bahan & Upah ----------
+  const MASTER_KEY = STORE_KEY + ':master';
+  const MASTER_DEFS = [
+    { group: 'Material Utama', key: 'cement', label: 'Semen (50 kg)', unit: 'zak', def: 70000 },
+    { group: 'Material Utama', key: 'sand', label: 'Pasir pasang / beton', unit: 'truk', def: 850000 },
+    { group: 'Material Utama', key: 'stone', label: 'Batu kali pondasi', unit: 'truk', def: 800000 },
+    { group: 'Material Utama', key: 'split', label: 'Batu pecah / batu cor', unit: 'truk', def: 1150000 },
+    { group: 'Material Utama', key: 'brick', label: 'Bata ringan / hebel', unit: 'm³', def: 750000 },
+    { group: 'Material Utama', key: 'ironMain', label: 'Besi beton utama Ø10/Ø12', unit: 'btg', def: 95000 },
+    { group: 'Material Utama', key: 'ironRing', label: 'Besi begel Ø6/Ø8', unit: 'btg', def: 48000 },
+    { group: 'Material Utama', key: 'tile', label: 'Granit / keramik lantai', unit: 'dos', def: 165000 },
+    { group: 'Material Utama', key: 'steelC', label: 'Baja ringan kanal C75', unit: 'btg', def: 88000 },
+    { group: 'Material Utama', key: 'gypsum', label: 'Papan gypsum 9mm', unit: 'lbr', def: 72000 },
+    { group: 'Material Utama', key: 'paint', label: 'Cat tembok (pail 25 kg)', unit: 'pail', def: 580000 },
+    { group: 'Upah Tukang', key: 'tukang', label: 'Upah tukang / kepala tukang', unit: 'org/hari', def: 175000 },
+    { group: 'Upah Tukang', key: 'kenek', label: 'Upah kenek / pembantu', unit: 'org/hari', def: 125000 },
+    { group: 'Upah Tukang', key: 'pondasiLabor', label: 'Upah pasang pondasi batu kali', unit: "m'", def: 55000 },
+    { group: 'Upah Tukang', key: 'tileLabor', label: 'Upah pasang keramik / granit', unit: 'dos', def: 45000 },
+  ];
+
+  function loadMaster() {
+    const base = Object.fromEntries(MASTER_DEFS.map((m) => [m.key, m.def]));
+    try {
+      const saved = JSON.parse(localStorage.getItem(MASTER_KEY));
+      if (saved && typeof saved === 'object') {
+        MASTER_DEFS.forEach((m) => { if (num(saved[m.key]) > 0) base[m.key] = Math.round(num(saved[m.key])); });
+      }
+    } catch (_) { /* abaikan */ }
+    return base;
+  }
+
+  const MASTER_CUSTOM_KEY = STORE_KEY + ':master-custom';
+
+  function loadCustomMaster() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(MASTER_CUSTOM_KEY));
+      if (Array.isArray(arr)) {
+        return arr.map((x) => ({
+          id: x.id || uid(),
+          label: String(x.label || ''),
+          unit: String(x.unit || ''),
+          price: Math.round(num(x.price)),
+        }));
+      }
+    } catch (_) { /* abaikan */ }
+    return [];
+  }
+
+  let masterPrices = loadMaster();
+  let masterCustom = loadCustomMaster();
+
+  const masterPrice = (key, tierMul = 1) => {
+    const def = MASTER_DEFS.find((m) => m.key === key)?.def || 0;
+    const curVal = masterPrices[key];
+    return curVal !== def ? curVal : Math.round(def * tierMul);
+  };
+
+  function allMasterEntries() {
+    return [
+      ...MASTER_DEFS.map((m) => ({ key: m.key, label: m.label, unit: m.unit, price: masterPrices[m.key] })),
+      ...masterCustom.filter((c) => c.label.trim()).map((c) => ({ key: 'custom:' + c.id, label: c.label.trim(), unit: c.unit.trim(), price: c.price })),
+    ];
+  }
+
+  function findMasterByName(name) {
+    const q = String(name || '').trim().toLowerCase();
+    if (!q) return null;
+    return allMasterEntries().find((m) => m.label.toLowerCase() === q) || null;
+  }
+
+  function renderMasterDatalist() {
+    const dl = $('#masterItemList');
+    if (!dl) return;
+    dl.innerHTML = allMasterEntries().map((m) => `<option value="${esc(m.label)}">${esc(m.unit)} · ${rp(m.price)}</option>`).join('');
+  }
+
+  function syncActiveProjectFromMaster() {
+    const p = cur();
+    if (!p) return 0;
+    const byKey = new Map(allMasterEntries().map((m) => [m.key, m]));
+    const byName = new Map(allMasterEntries().map((m) => [m.label.toLowerCase(), m]));
+    let updated = 0;
+
+    // Pencocokan kata kunci bawaan untuk item hasil Generate Otomatis
+    const inferKey = (it) => {
+      if (it.mkey && byKey.has(it.mkey)) return it.mkey;
+      const d = String(it.desc || '').toLowerCase();
+      const u = String(it.unit || '').toLowerCase();
+      if (d.includes('semen') && u === 'zak') return 'cement';
+      if (d.includes('pasir') && u === 'truk') return 'sand';
+      if (d.includes('batu kali') && u === 'truk') return 'stone';
+      if ((d.includes('batu pecah') || d.includes('batu cor')) && u === 'truk') return 'split';
+      if ((d.includes('bata ringan') || d.includes('hebel')) && u === 'm³') return 'brick';
+      if (d.includes('besi beton utama') && u === 'btg') return 'ironMain';
+      if (d.includes('besi begel') && u === 'btg') return 'ironRing';
+      if ((d.includes('granit lantai') || d.includes('keramik lantai')) && u === 'dos') return 'tile';
+      if (d.includes('baja ringan kanal') && u === 'btg') return 'steelC';
+      if (d.includes('papan gypsum') && u === 'lbr') return 'gypsum';
+      if (d.includes('cat tembok') && u === 'pail') return 'paint';
+      if (d.includes('upah tukang') && u === 'org/hari') return 'tukang';
+      if (d.includes('upah kenek') && u === 'org/hari') return 'kenek';
+      if (d.includes('upah') && d.includes('pondasi') && u === "m'") return 'pondasiLabor';
+      if (d.includes('upah') && (d.includes('keramik') || d.includes('granit')) && u === 'dos') return 'tileLabor';
+      return null;
+    };
+
+    p.sections.forEach((s) => {
+      s.items.forEach((it) => {
+        const match = byName.get(String(it.desc || '').trim().toLowerCase()) || byKey.get(inferKey(it));
+        if (match && match.price > 0 && it.price !== match.price) {
+          it.price = match.price;
+          updated++;
+        }
+      });
+    });
+
+    if (updated > 0) {
+      renderSections();
+      renderTotals();
+      save();
+    }
+    return updated;
+  }
+
+  function saveMaster() {
+    try {
+      localStorage.setItem(MASTER_KEY, JSON.stringify(masterPrices));
+      localStorage.setItem(MASTER_CUSTOM_KEY, JSON.stringify(masterCustom));
+    } catch (_) { /* abaikan */ }
+    renderMasterDatalist();
+  }
+
+  function customMasterRowHTML(c) {
+    return `<div class="master-custom-row" data-mcid="${c.id}">
+      <input type="text" data-mc="label" value="${esc(c.label)}" placeholder="Nama bahan / upah, mis. Paku 7cm" autocomplete="off">
+      <input type="text" data-mc="unit" list="unitList" value="${esc(c.unit)}" placeholder="kg" autocomplete="off">
+      <input type="text" data-mc="price" inputmode="numeric" value="${c.price ? fmt(c.price) : ''}" placeholder="Harga (Rp)" autocomplete="off">
+      <button type="button" class="icon-btn danger" data-mcdel title="Hapus item master" aria-label="Hapus item master">${ICON.x}</button>
+    </div>`;
+  }
+
+  function renderMasterModal() {
+    const groups = [...new Set(MASTER_DEFS.map((m) => m.group))];
+    let html = groups.map((g) => {
+      const items = MASTER_DEFS.filter((m) => m.group === g).map((m) => `
+        <div class="master-item">
+          <div class="master-item-top">
+            <label for="mp_${m.key}">${esc(m.label)}</label>
+            <span class="master-unit">per ${esc(m.unit)}</span>
+          </div>
+          <input id="mp_${m.key}" data-mkey="${m.key}" inputmode="numeric" value="${fmt(masterPrices[m.key])}" placeholder="${fmt(m.def)}" autocomplete="off">
+        </div>
+      `).join('');
+      return `<div class="master-group"><div class="master-group-title">${esc(g)}</div><div class="master-list">${items}</div></div>`;
+    }).join('');
+
+    html += `<div class="master-group" id="masterCustomGroup"${masterCustom.length ? '' : ' hidden'}>
+      <div class="master-group-title">Item Master Tambahan</div>
+      <div class="master-group" id="masterCustomList">${masterCustom.map(customMasterRowHTML).join('')}</div>
+    </div>`;
+
+    $('#masterGrid').innerHTML = html;
+  }
+
   // ---------- Generator RAB otomatis (berbasis rumus standar + custom) ----------
   const r1 = (n) => Math.round(n * 10) / 10;
 
   // Daftar jenis proyek dinamis — cukup tambah entri di sini jika ada tipe baru
+  const TYPE_ICON = {
+    bangun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"/><path d="M5 10v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V10"/><path d="M9 21v-6h6v6"/></svg>',
+    renovasi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+    tambah: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    pagar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6v14M12 4v16M20 6v14M4 10h16M4 16h16"/></svg>',
+    kanopi: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10 12 4l10 6H2Z"/><path d="M5 10v10M19 10v10"/></svg>',
+  };
+
   const PROJECT_TYPES = [
-    { id: 'bangun', icon: '🏠', name: 'Bangun Rumah Baru', desc: 'Lengkap dari persiapan sampai finishing', keywords: 'rumah bangun baru struktur pondasi' },
-    { id: 'renovasi', icon: '🛠️', name: 'Renovasi Rumah', desc: 'Pilih bagian rumah yang ingin direnovasi', keywords: 'renovasi perbaikan bongkar cat lantai' },
-    { id: 'tambah', icon: '➕', name: 'Tambah Ruangan', desc: 'Nambah kamar, dapur, atau ruang baru', keywords: 'tambah ruangan kamar dapur kamar mandi dak' },
-    { id: 'pagar', icon: '🧱', name: 'Bangun Pagar Rumah', desc: 'Pondasi, dinding/besi, gerbang & cat', keywords: 'pagar tembok besi hollow gerbang' },
-    { id: 'kanopi', icon: '⛱️', name: 'Pasang Kanopi', desc: 'Rangka, penutup atap, talang & finishing', keywords: 'kanopi carport alderon spandek baja ringan' },
+    { id: 'bangun', icon: TYPE_ICON.bangun, name: 'Bangun Rumah Baru', desc: 'Lengkap dari persiapan sampai finishing', keywords: 'rumah bangun baru struktur pondasi' },
+    { id: 'renovasi', icon: TYPE_ICON.renovasi, name: 'Renovasi Rumah', desc: 'Pilih bagian rumah yang ingin direnovasi', keywords: 'renovasi perbaikan bongkar cat lantai' },
+    { id: 'tambah', icon: TYPE_ICON.tambah, name: 'Tambah Ruangan', desc: 'Nambah kamar, dapur, atau ruang baru', keywords: 'tambah ruangan kamar dapur kamar mandi dak' },
+    { id: 'pagar', icon: TYPE_ICON.pagar, name: 'Bangun Pagar Rumah', desc: 'Pondasi, dinding/besi, gerbang & cat', keywords: 'pagar tembok besi hollow gerbang' },
+    { id: 'kanopi', icon: TYPE_ICON.kanopi, name: 'Pasang Kanopi', desc: 'Rangka, penutup atap, talang & finishing', keywords: 'kanopi carport alderon spandek baja ringan' },
   ];
 
   const DEFAULT_COEFFS = {
@@ -715,21 +901,408 @@
   let genCoeffs = { ...DEFAULT_COEFFS };
   let lastFormulaKey = '';
 
+  const isLaborOnlyDesc = (desc) => /\b(galian|urugan tanah kembali|bongkar|buang puing|pembersihan)\b/i.test(String(desc || ''));
+
+  // Konversi daftar pekerjaan ke rincian belanja material toko (semen zak, pasir truk, batu truk, besi btg, keramik dos, cat pail, dll)
+  function buildMaterialBreakdown(opts, tier, pf) {
+    const cf = genCoeffs;
+    const mode = opts.workMode; // 'pisah' | 'pisah_satuan'
+    const withPieceLabor = mode === 'pisah_satuan';
+    const round1k = (n) => Math.max(1000, Math.round((n * pf) / 1000) * 1000);
+    const toSec = (name, rows) => ({
+      id: uid(),
+      name,
+      collapsed: false,
+      items: rows.filter((r) => num(r[1]) > 0).map(([desc, vol, unit, price]) => ({
+        id: uid(), desc, vol: String(vol), unit, price: round1k(price),
+      })),
+    });
+
+    const tierMul = tier === 'premium' ? 1.25 : tier === 'ekonomis' ? 0.85 : 1;
+    const cementPrice = masterPrice('cement', tier === 'premium' ? 1.08 : tier === 'ekonomis' ? 0.94 : 1);
+    const sandTruckPrice = masterPrice('sand');
+    const stoneTruckPrice = masterPrice('stone');
+    const splitTruckPrice = masterPrice('split');
+    const brickM3Price = masterPrice('brick');
+    const ironMainPrice = masterPrice('ironMain', tier === 'premium' ? 1.2 : tier === 'ekonomis' ? 0.86 : 1);
+    const ironRingPrice = masterPrice('ironRing', tier === 'premium' ? 1.2 : tier === 'ekonomis' ? 0.88 : 1);
+    const tileM2PerDos = tier === 'ekonomis' ? 1 : 1.44;
+    const tileDosPrice = masterPrice('tile', tier === 'premium' ? 1.72 : tier === 'ekonomis' ? 0.48 : 1);
+    const tileLabel = tier === 'ekonomis' ? 'Keramik lantai 40×40' : tier === 'premium' ? 'Granit lantai premium 60×60' : 'Granit lantai 60×60';
+    const steelCPrice = masterPrice('steelC');
+    const gypsumPrice = masterPrice('gypsum');
+    const paintPailPrice = masterPrice('paint', tier === 'premium' ? 1.64 : tier === 'ekonomis' ? 0.62 : 1);
+    const pondasiLaborPrice = masterPrice('pondasiLabor');
+    const tileLaborPrice = masterPrice('tileLabor');
+    void tierMul;
+
+    const addDailyLabor = (secs, estLaborRp) => {
+      if (mode !== 'pisah' || !secs.length) return secs;
+      const tukangRate = Math.max(50000, Math.round(num(cf.tukangRate) || 175000));
+      const kenekRate = Math.max(40000, Math.round(num(cf.kenekRate) || 125000));
+      const days = Math.max(1, Math.round((estLaborRp * pf) / (tukangRate + kenekRate)));
+      secs.push({
+        id: uid(),
+        name: 'Upah Tenaga Kerja (Harian)',
+        collapsed: false,
+        items: [
+          { id: uid(), desc: 'Upah Tukang / Kepala Tukang', vol: String(days), unit: 'org/hari', price: tukangRate },
+          { id: uid(), desc: 'Upah Kenek / Pembantu Tukang', vol: String(days), unit: 'org/hari', price: kenekRate },
+        ],
+      });
+      return secs;
+    };
+
+    const trucks = (m3) => Math.max(1, Math.ceil(m3 / 4));
+
+    if (opts.type === 'kanopi') {
+      const len = num(opts.canopyLen);
+      const wid = num(opts.canopyWidth);
+      if (len <= 0 || wid <= 0) return [];
+      const area = r1(len * wid);
+      const frame = opts.canopyFrame || 'hollow';
+      const roof = opts.canopyRoof || 'alderon';
+      const postCount = Math.max(2, Math.ceil(len / Math.max(1.5, num(cf.canopyPostDist) || 3)) + 1);
+      const pipeLen = Math.max(1, num(cf.canopyPipeLen) || 4);
+      const frameBtg = Math.max(4, Math.ceil(area * 1.15));
+      const framePrice = frame === 'wf' ? 420000 : frame === 'bajaringan' ? 92000 : 145000;
+      const frameName = frame === 'wf' ? 'Besi WF / H-Beam rangka & tiang (6m)' : frame === 'bajaringan' ? 'Baja ringan kanal C75 & reng (6m)' : 'Besi hollow galvanis rangka & tiang (6m)';
+      const roofPrice = roof === 'poly' ? 215000 : roof === 'spandek' ? 95000 : 190000;
+      const roofName = roof === 'poly' ? 'Atap polikarbonat / Solarflat' : roof === 'spandek' ? 'Atap spandek / spandek pasir' : 'Atap Alderon / UPVC double layer';
+
+      const secs = [
+        toSec('Material Rangka & Atap Kanopi', [
+          [frameName, frameBtg, 'btg', framePrice],
+          [roofName, area, 'm²', roofPrice],
+          ['Baut roofing, dynabolt, elektroda las & sealant', 1, 'ls', 450000 + area * 15000],
+          ...(frame !== 'bajaringan' ? [['Cat anti karat & cat besi + thinner', Math.max(1, Math.ceil(area / 12)), 'kaleng', 95000]] : []),
+          ...(opts.canopyGutter ? [
+            ['Talang air PVC / galvalum + bracket', len, "m'", 75000],
+            ['Pipa PVC 3" pembuangan air hujan', Math.max(1, Math.ceil(pipeLen / 4)), 'btg', 135000],
+          ] : []),
+          ...(withPieceLabor ? [['Upah pemasangan rangka, atap & finishing kanopi', area, 'm²', frame === 'wf' ? 180000 : 115000]] : []),
+        ]),
+      ];
+      return addDailyLabor(secs, area * (frame === 'wf' ? 180000 : 115000));
+    }
+
+    if (opts.type === 'pagar') {
+      const len = num(opts.fenceLen);
+      const h = num(opts.fenceHeight);
+      if (len <= 0 || h <= 0) return [];
+      const style = opts.fenceStyle || 'kombinasi';
+      const hasGate = !!opts.fenceGate;
+      const colDist = Math.max(1.5, num(cf.fenceColDist) || 3);
+      const gateW = Math.max(1, num(cf.gateWidth) || 3.5);
+      const wallH = style === 'tembok' ? h : style === 'kombinasi' ? Math.min(1, r1(h * 0.45)) : 0.3;
+      const ironH = style === 'tembok' ? 0 : r1(Math.max(0.5, h - wallH));
+      const wallM2 = r1(len * wallH);
+      const ironM2 = r1(len * ironH);
+      const pondasiM3 = r1(len * 0.22);
+      const betonM3 = r1(len * 0.045 + Math.ceil(len / colDist) * 0.03);
+
+      const totalCement = Math.ceil(pondasiM3 * 3.2 + betonM3 * 6.5 + wallM2 * 0.42);
+      const totalSandM3 = pondasiM3 * 0.52 + betonM3 * 0.55 + wallM2 * 0.065;
+      const stoneM3 = pondasiM3 * 1.2;
+      const splitM3 = betonM3 * 0.82;
+      const secs = [
+        toSec('Material Pondasi, Beton & Dinding Pagar', [
+          ['Batu kali pondasi', trucks(stoneM3), 'truk', stoneTruckPrice],
+          ['Batu pecah / batu cor (split)', Math.max(1, Math.ceil(splitM3)), 'm³', 310000],
+          ['Pasir pasang & beton', trucks(totalSandM3), 'truk', sandTruckPrice],
+          ['Semen (50 kg)', totalCement, 'zak', cementPrice],
+          ['Besi beton utama Ø10 (12m)', Math.max(4, Math.ceil(betonM3 * 14)), 'btg', ironMainPrice],
+          ['Besi begel / cincin Ø6-Ø8 (12m)', Math.max(3, Math.ceil(betonM3 * 10)), 'btg', ironRingPrice],
+          ['Kawat bendrat, papan bekisting & paku', 1, 'ls', 450000 + len * 15000],
+          ...(wallM2 > 0 ? [['Bata ringan / hebel (atau bata merah)', Math.max(1, Math.ceil(wallM2 / 10)), 'm³', brickM3Price]] : []),
+          ...(withPieceLabor ? [
+            ['Upah galian & pasangan pondasi pagar', len, "m'", pondasiLaborPrice],
+            ...(wallM2 > 0 ? [['Upah pasangan dinding, plester & aci pagar', wallM2, 'm²', 85000]] : []),
+          ] : []),
+        ]),
+      ];
+
+      if (ironM2 > 0 || hasGate) {
+        const gateArea = hasGate ? r1(gateW * Math.min(2.2, h)) : 0;
+        const hollowBtg = Math.max(4, Math.ceil((ironM2 + gateArea) * 1.3));
+        secs.push(toSec('Material Besi Pagar & Gerbang', [
+          ['Besi hollow galvanis pagar & gerbang (6m)', hollowBtg, 'btg', tier === 'premium' ? 165000 : 125000],
+          ...(hasGate ? [['Rel besi, roda gerbang, engsel & kunci', 1, 'set', 750000]] : []),
+          ['Elektroda las, mata gerinda, cat anti karat & cat besi', 1, 'ls', 450000 + len * 20000],
+          ...(withPieceLabor ? [['Upah fabrikasi & pasang besi pagar/gerbang', r1(ironM2 + gateArea), 'm²', 185000]] : []),
+        ]));
+      }
+
+      if (wallM2 > 0) {
+        secs.push(toSec('Material Pengecatan Pagar', [
+          ['Cat tembok eksterior (pail 25 kg)', Math.max(1, Math.ceil((wallM2 * 2) / 65)), 'pail', paintPailPrice],
+          ['Cat dasar / alkali sealer & kuas roller', 1, 'set', 350000],
+          ...(withPieceLabor ? [['Upah pengecatan tembok pagar', r1(wallM2 * 2), 'm²', 16000]] : []),
+        ]));
+      }
+
+      const estLabor = len * 55000 + wallM2 * 117000 + (ironM2 + (hasGate ? gateW * 2 : 0)) * 185000;
+      return addDailyLabor(secs, estLabor);
+    }
+
+    if (opts.type === 'renovasi') {
+      const area = num(opts.area);
+      if (area <= 0) return [];
+      const scopes = new Set(opts.scopes || []);
+      const baths = Math.max(0, Math.round(num(opts.bathrooms)));
+      const beds = Math.max(0, Math.round(num(opts.bedrooms)));
+      const wallArea = Math.round(area * (num(cf.renovWallRatio) || 1.4));
+      const paintArea = Math.round(area * (num(cf.renovPaintRatio) || 2.8));
+      const roofArea = Math.round(area * (num(cf.renovRoofRatio) || 1.32));
+      const secs = [];
+      let estLabor = 0;
+
+      if (scopes.has('bongkar')) {
+        const wRep = Math.round(wallArea * 0.4);
+        const cem = Math.max(3, Math.ceil(wRep * 0.42));
+        secs.push(toSec('Bongkaran & Material Dinding', [
+          ['Bata ringan / hebel perbaikan', Math.max(1, Math.ceil(wRep / 10)), 'm³', 750000],
+          ['Semen pasang, plester & aci (50 kg)', cem, 'zak', cementPrice],
+          ['Pasir pasang & plester', trucks(wRep * 0.065), 'truk', sandTruckPrice],
+          ['Angkut & buang puing bongkaran', Math.max(1, Math.ceil(area / 20)), 'rit', 500000],
+          ...(withPieceLabor ? [
+            ['Upah bongkar lantai / dinding lama', Math.round(area * 0.6), 'm²', 40000],
+            ['Upah pasang bata, plester & aci', wRep, 'm²', 85000],
+          ] : []),
+        ]));
+        estLabor += area * 0.6 * 40000 + wRep * 85000;
+      }
+      if (scopes.has('lantai')) {
+        const dos = Math.max(1, Math.ceil((area / tileM2PerDos) * 1.05));
+        secs.push(toSec('Material Lantai', [
+          [tileLabel, dos, 'dos', tileDosPrice],
+          ['Semen & nat keramik (50 kg)', Math.max(2, Math.ceil(area * 0.25)), 'zak', cementPrice],
+          ['Pasir urug / spesi lantai', trucks(area * 0.05), 'truk', sandTruckPrice],
+          ...(withPieceLabor ? [['Upah pasang lantai keramik / granit', dos, 'dos', tileLaborPrice]] : []),
+        ]));
+        estLabor += dos * tileLaborPrice;
+      }
+      if (scopes.has('plafon')) {
+        secs.push(toSec('Material Plafon', [
+          ['Papan gypsum 9mm (120×240)', Math.max(2, Math.ceil((area / 2.88) * 1.08)), 'lbr', gypsumPrice],
+          ['Besi hollow rangka plafon (4m)', Math.max(4, Math.ceil(area * 0.7)), 'btg', 26000],
+          ['Kompon, kasa & sekrup gypsum', Math.max(1, Math.ceil(area / 25)), 'zak', 85000],
+          ...(withPieceLabor ? [['Upah bongkar & pasang plafon', area, 'm²', 60000]] : []),
+        ]));
+        estLabor += area * 60000;
+      }
+      if (scopes.has('km')) {
+        const km = Math.max(1, baths);
+        secs.push(toSec('Material Kamar Mandi', [
+          ['Waterproofing / pelapis anti bocor (galon)', km * 2, 'kaleng', 185000],
+          ['Keramik dinding & lantai kamar mandi', km * 16, 'dos', 95000],
+          ['Kloset duduk + shower + keran & floor drain', km, 'set', tier === 'premium' ? 3600000 : 1900000],
+          ['Pipa PVC, sambungan & lem pipa', km, 'ls', 750000],
+          ...(withPieceLabor ? [['Upah renovasi kamar mandi & sanitasi', km, 'unit', 1650000]] : []),
+        ]));
+        estLabor += km * 1650000;
+      }
+      if (scopes.has('atap')) {
+        secs.push(toSec('Material Atap', [
+          ['Baja ringan kanal C75 (6m)', Math.ceil(roofArea * 0.85), 'btg', 88000],
+          ['Reng baja ringan (6m)', Math.ceil(roofArea * 0.75), 'btg', 45000],
+          ['Penutup atap genteng metal / spandek', roofArea, 'm²', tier === 'premium' ? 145000 : 88000],
+          ['Nok, lisplang & baut roofing', 1, 'ls', 650000 + roofArea * 15000],
+          ...(withPieceLabor ? [['Upah bongkar & pasang rangka + atap', roofArea, 'm²', 95000]] : []),
+        ]));
+        estLabor += roofArea * 95000;
+      }
+      if (scopes.has('listrik')) {
+        const pts = Math.max(4, Math.round(area / 5) + beds);
+        secs.push(toSec('Material Listrik', [
+          ['Kabel NYM, pipa conduit, saklar, stop kontak & lampu LED', pts, 'titik', 210000],
+          ['Box MCB & aksesoris perapian', 1, 'set', 650000],
+          ...(withPieceLabor ? [['Upah instalasi titik listrik', pts, 'titik', 110000]] : []),
+        ]));
+        estLabor += pts * 110000;
+      }
+      if (scopes.has('cat')) {
+        secs.push(toSec('Material Pengecatan', [
+          ['Cat tembok dalam & luar (pail 25 kg)', Math.max(1, Math.ceil(paintArea / 70)), 'pail', paintPailPrice],
+          ['Cat plafon putih (pail 25 kg)', Math.max(1, Math.ceil(area / 70)), 'pail', 340000],
+          ['Plamir, sealer, amplas, kuas & roller', 1, 'ls', 450000],
+          ...(withPieceLabor ? [['Upah pengecatan dinding & plafon', paintArea + area, 'm²', 15000]] : []),
+        ]));
+        estLabor += (paintArea + area) * 15000;
+      }
+      return addDailyLabor(secs, estLabor);
+    }
+
+    // Bangun Rumah Baru & Tambah Ruangan — rincian material toko lengkap!
+    const isTambah = opts.type === 'tambah';
+    let area = 0;
+    let footprint = 0;
+    let floors = 1;
+    let beds = 0;
+    let baths = 0;
+    let perim = 0;
+    let wallArea = 0;
+    let roofArea = 0;
+    let pondasiM3 = 0;
+    let betonM3 = 0;
+    let doors = 1;
+    let windows = 1;
+    let elecPts = 4;
+
+    if (isTambah) {
+      const len = num(opts.roomLen);
+      const wid = num(opts.roomWidth);
+      if (len <= 0 || wid <= 0) return [];
+      area = r1(len * wid);
+      footprint = area;
+      const isL2 = opts.roomPos === 'lantai2';
+      perim = r1((len + wid) * 2);
+      const newWallLen = r1(perim * (num(cf.roomWallRatio) || 0.78));
+      wallArea = r1(newWallLen * (num(cf.roomHeight) || 3.2));
+      roofArea = opts.roomRoof ? r1(area * (num(cf.roomRoofRatio) || 1.35)) : 0;
+      pondasiM3 = isL2 ? 0 : r1(newWallLen * 0.36);
+      betonM3 = isL2 ? r1(area * 0.12 + newWallLen * 0.075) : r1(newWallLen * 0.085);
+      baths = opts.roomKind === 'km' ? 1 : 0;
+      doors = 1;
+      windows = opts.roomKind === 'km' ? 0 : (area >= 14 ? 2 : 1);
+      elecPts = Math.max(2, Math.round(area / 4) + 1);
+    } else {
+      area = num(opts.area);
+      if (area <= 0) return [];
+      floors = opts.floors === 2 ? 2 : 1;
+      beds = Math.max(0, Math.round(num(opts.bedrooms)));
+      baths = Math.max(0, Math.round(num(opts.bathrooms)));
+      footprint = floors === 2 ? Math.round(area * 0.55) : area;
+      perim = Math.round(Math.sqrt(footprint) * 4 * (num(cf.perimRatio) || 1.35));
+      wallArea = Math.round(area * (num(cf.wallRatio) || 2.75) + beds * 10 + baths * 5);
+      roofArea = Math.round(footprint * (num(cf.roofRatio) || 1.38));
+      pondasiM3 = r1(perim * (floors === 2 ? 0.52 : 0.36));
+      const sloof = perim * (floors === 2 ? 0.06 : 0.036);
+      const kolom = (area / 12) * (floors === 2 ? 0.14 : 0.08);
+      const balok = perim * (floors === 2 ? 0.08 : 0.036);
+      const dak = floors === 2 ? Math.max(12, area - footprint) * 0.12 : 0;
+      betonM3 = r1(sloof + kolom + balok + dak);
+      doors = 2 + beds + baths;
+      windows = Math.max(3, 2 + beds * 2);
+      elecPts = Math.max(8, Math.round(area / 3.2) + beds * 2 + baths);
+    }
+
+    const structCement = Math.ceil(pondasiM3 * 3.2 + betonM3 * 6.5);
+    const structSandM3 = pondasiM3 * 0.52 + betonM3 * 0.55;
+    const stoneM3 = pondasiM3 * 1.2;
+    const splitM3 = betonM3 * 0.82;
+    const wallCement = Math.ceil(wallArea * 0.42);
+    const wallSandM3 = wallArea * 0.065;
+    const floorDos = Math.max(1, Math.ceil((area / tileM2PerDos) * 1.05));
+    const floorCement = Math.max(2, Math.ceil(area * 0.25));
+
+    const secs = [
+      toSec('Material Pondasi & Struktur Beton', [
+        ...(pondasiM3 > 0 ? [['Batu kali pondasi', trucks(stoneM3), 'truk', stoneTruckPrice]] : []),
+        ['Batu pecah / batu cor (split)', trucks(splitM3), 'truk', splitTruckPrice],
+        ['Pasir beton & pondasi', trucks(structSandM3), 'truk', sandTruckPrice],
+        ['Semen pondasi & struktur (50 kg)', structCement, 'zak', cementPrice],
+        ['Besi beton utama Ø10 / Ø12 (12m)', Math.max(6, Math.ceil(betonM3 * 14)), 'btg', ironMainPrice],
+        ['Besi begel / cincin Ø6 / Ø8 (12m)', Math.max(4, Math.ceil(betonM3 * 10)), 'btg', ironRingPrice],
+        ['Kawat bendrat', Math.max(2, Math.ceil(betonM3 * 2)), 'kg', 24000],
+        ['Papan bekisting, kaso & paku', 1, 'ls', 750000 + Math.round(betonM3 * 350000)],
+        ...(withPieceLabor ? [
+          ...(pondasiM3 > 0 ? [['Upah galian & pasangan pondasi batu kali', perim, "m'", pondasiLaborPrice]] : []),
+          ['Upah perakitan besi, bekisting & pengecoran struktur', betonM3, 'm³', 1350000],
+        ] : []),
+      ]),
+      toSec('Material Dinding, Plester & Aci', [
+        ['Bata ringan / hebel (atau bata merah)', Math.max(1, Math.ceil(wallArea / 10)), 'm³', brickM3Price],
+        ['Semen pasang, plester & aci (50 kg)', wallCement, 'zak', cementPrice],
+        ['Pasir pasang & plester', trucks(wallSandM3), 'truk', sandTruckPrice],
+        ...(withPieceLabor ? [
+          ['Upah pasang dinding bata / hebel', wallArea, 'm²', 38000],
+          ['Upah plesteran & acian dinding (2 sisi)', r1(wallArea * 2), 'm²', 32000],
+        ] : []),
+      ]),
+    ];
+
+    if (roofArea > 0) {
+      secs.push(toSec('Material Atap', [
+        ['Baja ringan kanal C75 (6m)', Math.ceil(roofArea * 0.85), 'btg', steelCPrice],
+        ['Reng baja ringan (6m)', Math.ceil(roofArea * 0.75), 'btg', 45000],
+        ['Penutup atap genteng metal / spandek', roofArea, 'm²', tier === 'premium' ? 145000 : 88000],
+        ['Nok, lisplang, talang & baut roofing', 1, 'ls', 650000 + roofArea * 18000],
+        ...(withPieceLabor ? [['Upah pemasangan rangka & penutup atap', roofArea, 'm²', 75000]] : []),
+      ]));
+    }
+
+    secs.push(
+      toSec('Material Lantai & Plafon', [
+        [tileLabel, floorDos, 'dos', tileDosPrice],
+        ['Semen pasang lantai & nat (50 kg)', floorCement, 'zak', cementPrice],
+        ['Pasir urug & spesi lantai', trucks(area * 0.05), 'truk', sandTruckPrice],
+        ['Papan gypsum plafon 9mm (120×240)', Math.max(2, Math.ceil((area / 2.88) * 1.08)), 'lbr', gypsumPrice],
+        ['Besi hollow rangka plafon (4m)', Math.max(4, Math.ceil(area * 0.7)), 'btg', 26000],
+        ['Kompon, kasa & sekrup gypsum', Math.max(1, Math.ceil(area / 25)), 'zak', 85000],
+        ...(withPieceLabor ? [
+          ['Upah pemasangan lantai keramik / granit', floorDos, 'dos', tileLaborPrice],
+          ['Upah pemasangan plafon gypsum', area, 'm²', 45000],
+        ] : []),
+      ]),
+      toSec('Kusen, Pintu & Jendela', [
+        ['Kusen, daun pintu + engsel & kunci', doors, 'unit', tier === 'premium' ? 2800000 : tier === 'ekonomis' ? 1450000 : 1950000],
+        ...(windows > 0 ? [['Kusen & daun jendela kaca + aksesoris', windows, 'unit', tier === 'premium' ? 1650000 : tier === 'ekonomis' ? 900000 : 1200000]] : []),
+        ...(withPieceLabor ? [['Upah pemasangan kusen, pintu & jendela', doors + windows, 'unit', 225000]] : []),
+      ]),
+      toSec('Material Listrik, Air & Sanitasi', [
+        ['Kabel NYM, pipa conduit, saklar, stop kontak & lampu LED', elecPts, 'titik', 210000],
+        ...(!isTambah ? [['Panel MCB & penyambungan baru PLN', 1, 'ls', floors === 2 ? 4200000 : 3000000]] : []),
+        ...(baths > 0 ? [
+          ['Keramik dinding kamar mandi & waterproofing', baths * 14, 'dos', 95000],
+          ['Kloset duduk + shower + keran & floor drain', baths, 'set', tier === 'premium' ? 3600000 : 1900000],
+        ] : []),
+        ...(isTambah && opts.roomKind === 'dapur' ? [
+          ['Bak cuci piring (kitchen sink), keran & pipa dapur', 1, 'set', 1450000],
+        ] : []),
+        ...(!isTambah ? [
+          ['Pipa PVC air bersih & kotor + fitting', 1, 'ls', 2200000],
+          ['Septic tank, sumur resapan, toren & pompa air', 1, 'set', 5800000],
+        ] : []),
+        ...(withPieceLabor ? [
+          ['Upah instalasi titik listrik', elecPts, 'titik', 110000],
+          ...(baths > 0 || !isTambah ? [['Upah instalasi pipa air & sanitasi', Math.max(1, baths), 'ls', 1650000]] : []),
+        ] : []),
+      ]),
+      toSec('Material Pengecatan', [
+        ['Cat tembok dalam & luar (pail 25 kg)', Math.max(1, Math.ceil((wallArea * 2) / 70)), 'pail', paintPailPrice],
+        ['Cat plafon putih (pail 25 kg)', Math.max(1, Math.ceil(area / 70)), 'pail', 340000],
+        ['Cat dasar (sealer), plamir, amplas, kuas & roller', 1, 'ls', 450000 + Math.round(area * 12000)],
+        ...(withPieceLabor ? [['Upah pengecatan dinding & plafon', r1(wallArea * 2 + area), 'm²', 15000]] : []),
+      ]),
+    );
+
+    const estLabor = (pondasiM3 > 0 ? perim * 55000 : 0) + betonM3 * 1350000 + wallArea * 102000 + roofArea * 75000 + floorDos * 45000 + area * 45000 + (doors + windows) * 225000 + elecPts * 110000 + (wallArea * 2 + area) * 15000;
+    return addDailyLabor(secs, estLabor);
+  }
+
   function applyFormulaCustom(secs, opts) {
     const pf = Math.max(0.1, num(genCoeffs.priceFactor) / 100 || 1);
+    const mode = opts?.workMode || 'borongan';
+
+    if (mode === 'pisah' || mode === 'pisah_satuan') {
+      return buildMaterialBreakdown(opts, opts?.tier || 'standar', pf);
+    }
+
     if (pf !== 1) {
       secs.forEach((s) => {
         s.items.forEach((it) => { it.price = Math.round(it.price * pf); });
       });
     }
 
-    const mode = opts?.workMode || 'borongan';
     const laborPct = Math.min(0.8, Math.max(0.1, (num(genCoeffs.laborShare) || 32) / 100));
     const round1k = (n) => Math.max(1000, Math.round(n / 1000) * 1000);
 
     const toLaborItem = (it) => {
+      if (isLaborOnlyDesc(it.desc)) {
+        return { id: uid(), desc: 'Upah ' + it.desc, vol: it.vol, unit: it.unit, price: round1k(it.price) };
+      }
       const descLow = it.desc.toLowerCase();
-      // Untuk pemasangan keramik/granit lantai: konversi ke satuan dos (60x60 ≈ 1.44 m²/dos, 40x40 ≈ 1 m²/dos)
       if ((descLow.includes('granit') || descLow.includes('keramik')) && it.unit === 'm²') {
         const m2PerDos = descLow.includes('60×60') || descLow.includes('60x60') ? 1.44 : 1;
         const dosVol = Math.max(1, Math.ceil(num(it.vol) / m2PerDos));
@@ -739,37 +1312,9 @@
       return { id: uid(), desc: 'Upah ' + it.desc, vol: it.vol, unit: it.unit, price: round1k(it.price * laborPct) };
     };
 
-    if (mode === 'pisah' && secs.length) {
-      const rawTotal = secs.reduce((a, s) => a + s.items.reduce((b, it) => b + num(it.vol) * num(it.price), 0), 0);
+    if (mode === 'jasa' && secs.length) {
       secs.forEach((s) => {
-        s.items.forEach((it) => { it.price = round1k(it.price * (1 - laborPct)); it.labor = 0; });
-      });
-      const tukangRate = Math.max(50000, Math.round(num(genCoeffs.tukangRate) || 175000));
-      const kenekRate = Math.max(40000, Math.round(num(genCoeffs.kenekRate) || 125000));
-      const estDays = Math.max(1, Math.round((rawTotal * laborPct) / (tukangRate + kenekRate)));
-      secs.push({
-        id: uid(),
-        name: 'Upah Tenaga Kerja (Harian)',
-        collapsed: false,
-        items: [
-          { id: uid(), desc: 'Upah Tukang / Kepala Tukang', vol: String(estDays), unit: 'org/hari', price: 0, labor: tukangRate },
-          { id: uid(), desc: 'Upah Kenek / Pembantu Tukang', vol: String(estDays), unit: 'org/hari', price: 0, labor: kenekRate },
-        ],
-      });
-    } else if (mode === 'pisah_satuan' && secs.length) {
-      secs.forEach((s) => {
-        s.items.forEach((it) => {
-          const full = num(it.price);
-          it.price = round1k(full * (1 - laborPct));
-          it.labor = round1k(full * laborPct);
-        });
-      });
-    } else if (mode === 'jasa' && secs.length) {
-      secs.forEach((s) => {
-        s.items = s.items.map((it) => {
-          const l = toLaborItem(it);
-          return { id: l.id, desc: l.desc, vol: l.vol, unit: l.unit, price: 0, labor: l.price };
-        });
+        s.items = s.items.map(toLaborItem);
       });
     }
     return secs;
@@ -823,7 +1368,7 @@
       id: uid(),
       name,
       collapsed: false,
-      items: rows.map(([desc, vol, unit, price]) => ({ id: uid(), desc, vol: String(vol), unit, price: Math.round(price), labor: 0 })),
+      items: rows.map(([desc, vol, unit, price]) => ({ id: uid(), desc, vol: String(vol), unit, price: Math.round(price) })),
     });
 
     if (opts.type === 'tambah') {
@@ -1274,14 +1819,20 @@
     }
   }
 
+  const ICON_SLIDERS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>';
+
+  function syncFormulaBtn(open) {
+    const btn = $('#btnToggleFormula');
+    btn.setAttribute('aria-expanded', String(open));
+    btn.innerHTML = open ? (ICON.x + '<span>Tutup Rumus</span>') : (ICON_SLIDERS + '<span>Lihat &amp; Ubah Rumus</span>');
+  }
+
   $('#btnToggleFormula').addEventListener('click', () => {
     const pane = $('#genFormulaPane');
     const open = pane.hidden;
     pane.hidden = !open;
     els.genDialog.classList.toggle('expanded', open);
-    const btn = $('#btnToggleFormula');
-    btn.setAttribute('aria-expanded', String(open));
-    btn.textContent = open ? '✕ Tutup Rumus' : '⚙️ Lihat & Ubah Rumus';
+    syncFormulaBtn(open);
     if (open) {
       lastFormulaKey = '';
       updateGenUI();
@@ -1289,7 +1840,7 @@
   });
 
   $('#btnResetFormula').addEventListener('click', () => {
-    genCoeffs = { ...DEFAULT_COEFFS };
+    genCoeffs = { ...DEFAULT_COEFFS, tukangRate: masterPrices.tukang, kenekRate: masterPrices.kenek };
     lastFormulaKey = '';
     updateGenUI();
     toast('Parameter rumus dikembalikan ke standar');
@@ -1337,7 +1888,7 @@
   function setGenType(id) {
     const found = PROJECT_TYPES.find((t) => t.id === id) || PROJECT_TYPES[0];
     genTypeInput.value = found.id;
-    typeCurrent.textContent = `${found.icon} ${found.name}`;
+    typeCurrent.innerHTML = `${found.icon}<span>${esc(found.name)}</span>`;
     closeTypeMenu();
     updateGenUI(false);
   }
@@ -1396,13 +1947,11 @@
     const p = cur();
     els.genForm.reset();
     setGenType('bangun');
-    genCoeffs = { ...DEFAULT_COEFFS };
+    genCoeffs = { ...DEFAULT_COEFFS, tukangRate: masterPrices.tukang, kenekRate: masterPrices.kenek };
     lastFormulaKey = '';
     $('#genFormulaPane').hidden = true;
     els.genDialog.classList.remove('expanded');
-    const btn = $('#btnToggleFormula');
-    btn.setAttribute('aria-expanded', 'false');
-    btn.textContent = '⚙️ Lihat & Ubah Rumus';
+    syncFormulaBtn(false);
     if (p && num(p.area) > 0) els.genForm.elements.area.value = p.area;
     $('#genModeField').hidden = !(p && p.sections.length > 0);
     els.genDialog.returnValue = '';
@@ -1585,19 +2134,20 @@
 
     let rows = '';
     p.sections.forEach((s, i) => {
-      rows += `<tr style="background:#eef4fc;font-weight:bold;color:#032c69"><td align="center">${letter(i)}</td><td colspan="6">${esc(s.name || 'Tanpa nama')}</td></tr>`;
+      rows += `<tr style="background:#eef4fc;font-weight:bold;color:#032c69"><td align="center">${letter(i)}</td><td colspan="5">${esc(s.name || 'Tanpa nama')}</td></tr>`;
       s.items.forEach((it, j) => {
         const sub = Math.round(itemTotal(it));
-        rows += `<tr><td align="center">${j + 1}</td><td>${esc(it.desc)}</td><td align="right" style="${vFmt}">${num(it.vol)}</td><td align="center">${esc(it.unit)}</td><td align="right" style="${nFmt}">${Math.round(num(it.price))}</td><td align="right" style="${nFmt}">${Math.round(num(it.labor))}</td><td align="right" style="${nFmt}">${sub}</td></tr>`;
+        const bg = isLaborItem(it) ? ' style="background:#fff8f3"' : '';
+        rows += `<tr${bg}><td align="center">${j + 1}</td><td>${esc(it.desc)}</td><td align="right" style="${vFmt}">${num(it.vol)}</td><td align="center">${esc(it.unit)}</td><td align="right" style="${nFmt}">${Math.round(num(it.price))}</td><td align="right" style="${nFmt}">${sub}</td></tr>`;
       });
-      rows += `<tr style="font-weight:bold;font-style:italic;background:#fafafa"><td></td><td colspan="5">Subtotal ${letter(i)}</td><td align="right" style="${nFmt}">${Math.round(c.secs[i])}</td></tr>`;
+      rows += `<tr style="font-weight:bold;font-style:italic;background:#fafafa"><td></td><td colspan="4">Subtotal ${letter(i)}</td><td align="right" style="${nFmt}">${Math.round(c.secs[i])}</td></tr>`;
     });
 
-    const rRow = (label, val, style = '') => `<tr style="${style}"><td colspan="6">${esc(label)}</td><td align="right" style="${nFmt}">${Math.round(val)}</td></tr>`;
+    const rRow = (label, val, style = '') => `<tr style="${style}"><td colspan="5">${esc(label)}</td><td align="right" style="${nFmt}">${Math.round(val)}</td></tr>`;
     let recap = p.sections.map((s, i) => rRow(`${letter(i)}. ${s.name || 'Tanpa nama'}`, c.secs[i])).join('');
     if (c.laborTotal > 0 && c.matTotal > 0) {
-      recap += rRow('Subtotal Bahan', c.matTotal);
-      recap += rRow('Subtotal Upah Tukang', c.laborTotal);
+      recap += rRow('Subtotal Material / Bahan', c.matTotal);
+      recap += rRow('Subtotal Upah Tukang', c.laborTotal, 'background:#fff8f3;color:#c2410c');
     }
     recap += rRow('TOTAL PEKERJAAN', c.subtotal, 'font-weight:bold;background:#f5f7fa');
     if (num(p.contingency)) recap += rRow(`Biaya tak terduga (${num(p.contingency)}%)`, c.cont);
@@ -1634,16 +2184,16 @@
   </table>
   <br>
   <table class="tbl">
-    <thead><tr><th>No</th><th>Uraian Pekerjaan</th><th>Volume</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Upah Tukang (Rp)</th><th>Jumlah (Rp)</th></tr></thead>
+    <thead><tr><th>No</th><th>Uraian Pekerjaan</th><th>Volume</th><th>Satuan</th><th>Harga Satuan (Rp)</th><th>Jumlah (Rp)</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <br>
   <table class="tbl">
-    <thead><tr><th colspan="7" align="left">REKAPITULASI</th></tr></thead>
+    <thead><tr><th colspan="6" align="left">REKAPITULASI</th></tr></thead>
     <tbody>
       ${recap}
-      <tr><td colspan="7" style="font-style:italic">Terbilang: <b>${esc(terbilang(c.rounded))}</b></td></tr>
-      ${area > 0 && c.total > 0 ? `<tr><td colspan="7">Biaya per m² bangunan: ± ${rp(c.total / area)}</td></tr>` : ''}
+      <tr><td colspan="6" style="font-style:italic">Terbilang: <b>${esc(terbilang(c.rounded))}</b></td></tr>
+      ${area > 0 && c.total > 0 ? `<tr><td colspan="6">Biaya per m² bangunan: ± ${rp(c.total / area)}</td></tr>` : ''}
     </tbody>
   </table>
   <br>
@@ -1665,18 +2215,18 @@
     const c = calc(p);
     let rows = '';
     p.sections.forEach((s, i) => {
-      rows += `<tr class="p-sec"><td class="c">${letter(i)}</td><td colspan="6">${esc(s.name || 'Tanpa nama')}</td></tr>`;
+      rows += `<tr class="p-sec"><td class="c">${letter(i)}</td><td colspan="5">${esc(s.name || 'Tanpa nama')}</td></tr>`;
       s.items.forEach((it, j) => {
-        rows += `<tr><td class="c">${j + 1}</td><td>${esc(it.desc)}</td><td class="r">${fmtVol(it.vol)}</td><td class="c">${esc(it.unit)}</td><td class="r">${fmt(it.price)}</td><td class="r">${fmt(it.labor)}</td><td class="r">${fmt(itemTotal(it))}</td></tr>`;
+        rows += `<tr${isLaborItem(it) ? ' class="p-labor"' : ''}><td class="c">${j + 1}</td><td>${esc(it.desc)}</td><td class="r">${fmtVol(it.vol)}</td><td class="c">${esc(it.unit)}</td><td class="r">${fmt(it.price)}</td><td class="r">${fmt(itemTotal(it))}</td></tr>`;
       });
-      rows += `<tr class="p-sub"><td></td><td colspan="5">Subtotal ${letter(i)}</td><td class="r">${fmt(c.secs[i])}</td></tr>`;
+      rows += `<tr class="p-sub"><td></td><td colspan="4">Subtotal ${letter(i)}</td><td class="r">${fmt(c.secs[i])}</td></tr>`;
     });
 
     const rr = (label, val, cls = '') => `<tr class="${cls}"><td>${esc(label)}</td><td class="r">${rp(val)}</td></tr>`;
     let recap = p.sections.map((s, i) => rr(`${letter(i)}. ${s.name || 'Tanpa nama'}`, c.secs[i])).join('');
     if (c.laborTotal > 0 && c.matTotal > 0) {
-      recap += rr('Subtotal Bahan', c.matTotal);
-      recap += rr('Subtotal Upah Tukang', c.laborTotal);
+      recap += rr('Subtotal Material / Bahan', c.matTotal);
+      recap += rr('Subtotal Upah Tukang', c.laborTotal, 'p-labor');
     }
     recap += rr('Total Pekerjaan', c.subtotal, 'p-total');
     if (num(p.contingency)) recap += rr(`Biaya tak terduga (${num(p.contingency)}%)`, c.cont);
@@ -1702,7 +2252,7 @@
         ${area > 0 ? `<tr><td>Luas bangunan</td><td>: ${fmtVol(area)} m²</td></tr>` : ''}
       </table>
       <table class="p-table">
-        <thead><tr><th style="width:5%">No</th><th>Uraian Pekerjaan</th><th style="width:8%">Volume</th><th style="width:8%">Satuan</th><th style="width:14%">Harga Satuan (Rp)</th><th style="width:14%">Upah Tukang (Rp)</th><th style="width:15%">Jumlah (Rp)</th></tr></thead>
+        <thead><tr><th style="width:6%">No</th><th>Uraian Pekerjaan</th><th style="width:9%">Volume</th><th style="width:8%">Satuan</th><th style="width:16%">Harga Satuan (Rp)</th><th style="width:17%">Jumlah (Rp)</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="p-recap">
@@ -1773,7 +2323,241 @@
     renderTotals();
   });
 
+  // ---------- Welcome Banner & Spotlight Quick Guide Tour ----------
+  const ONBOARD_KEY = STORE_KEY + ':onboarded';
+  const welcomeDialog = $('#welcomeDialog');
+  const tourLayer = $('#tourLayer');
+  const tourRing = $('#tourRing');
+  const tourTip = $('#tourTip');
+
+  const TOUR_STEPS = [
+    {
+      sel: '#projDd',
+      title: 'Pilih & Cari Proyek',
+      desc: 'Simpan banyak RAB sekaligus. Klik di sini untuk berpindah atau mencari proyek, dan klik "+ RAB Baru" di sampingnya untuk membuat proyek baru.',
+    },
+    {
+      sel: '#infoCard',
+      title: '1. Isi Info Proyek',
+      desc: 'Masukkan nama proyek, pemilik, lokasi, tanggal, dan luas bangunan. Info ini otomatis tampil di kop dokumen PDF & Excel.',
+    },
+    {
+      sel: '#btnGen',
+      title: 'Generate RAB Otomatis',
+      desc: 'Tidak perlu mulai dari nol! Klik tombol ini untuk membuat rincian pekerjaan otomatis (bangun rumah, renovasi, tambah ruangan, pagar, atau kanopi).',
+    },
+    {
+      sel: '#workCard',
+      title: '2. Daftar Pekerjaan Fleksibel',
+      desc: 'Isi volume & harga satuan (bisa ketik rumus langsung seperti 4*3 atau 150000+25000), geser urutan dengan ikon ⋮⋮, atau klik ikon layar penuh agar lebih lega.',
+    },
+    {
+      sel: '#summary',
+      title: 'Ringkasan, Cetak PDF & Excel',
+      desc: 'Total anggaran terhitung otomatis dan bisa disamarkan dengan ikon mata. Jika sudah selesai, langsung klik Cetak / Simpan PDF atau Unduh untuk Excel.',
+    },
+  ];
+
+  let tourIdx = -1;
+
+  function markOnboarded() {
+    try { localStorage.setItem(ONBOARD_KEY, '1'); } catch (_) { /* abaikan */ }
+  }
+
+  function positionTour() {
+    if (tourIdx < 0) return;
+    const step = TOUR_STEPS[tourIdx];
+    const target = $(step.sel);
+    if (!target) { endTour(); return; }
+
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const isMobile = vw <= 680;
+    const r = target.getBoundingClientRect();
+    const pad = isMobile ? 4 : 6;
+    const top = Math.max(4, Math.min(vh - 48, r.top - pad));
+    const left = Math.max(4, r.left - pad);
+    const width = Math.max(40, Math.min(vw - left - 4, r.width + pad * 2));
+    const maxRingH = isMobile ? Math.min(vh * 0.48, vh - top - 4) : (vh - top - 4);
+    const height = Math.max(36, Math.min(maxRingH, r.height + pad * 2));
+
+    tourRing.style.top = top + 'px';
+    tourRing.style.left = left + 'px';
+    tourRing.style.width = width + 'px';
+    tourRing.style.height = height + 'px';
+
+    const tipW = tourTip.offsetWidth || Math.min(350, vw - 24);
+    const tipH = tourTip.offsetHeight || 180;
+    const spaceBelow = vh - (top + height);
+    const spaceAbove = top;
+
+    let tipTop;
+    if (spaceBelow >= tipH + 16) tipTop = top + height + 12;
+    else if (spaceAbove >= tipH + 16) tipTop = top - tipH - 12;
+    else tipTop = Math.max(12, vh - tipH - 14);
+
+    const tipLeft = isMobile ? 12 : Math.min(vw - tipW - 12, Math.max(12, left));
+    tourTip.style.top = tipTop + 'px';
+    tourTip.style.left = tipLeft + 'px';
+  }
+
+  function showTourStep(idx) {
+    tourIdx = idx;
+    const step = TOUR_STEPS[idx];
+    const target = $(step.sel);
+    if (!target) { endTour(); return; }
+
+    $('#tourStep').textContent = `Langkah ${idx + 1} dari ${TOUR_STEPS.length}`;
+    $('#tourTitle').textContent = step.title;
+    $('#tourDesc').textContent = step.desc;
+    $('#btnTourPrev').hidden = idx === 0;
+    $('#btnTourNext').textContent = idx === TOUR_STEPS.length - 1 ? 'Selesai ✓' : 'Lanjut →';
+
+    tourLayer.hidden = false;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    positionTour();
+    setTimeout(positionTour, 320);
+  }
+
+  function startTour() {
+    if (welcomeDialog.open) welcomeDialog.close();
+    markOnboarded();
+    showTourStep(0);
+  }
+
+  function endTour() {
+    tourIdx = -1;
+    tourLayer.hidden = true;
+    markOnboarded();
+  }
+
+  $('#btnWelcomeSkip').addEventListener('click', () => {
+    markOnboarded();
+    welcomeDialog.close();
+  });
+  $('#btnStartTour').addEventListener('click', startTour);
+  welcomeDialog.addEventListener('cancel', markOnboarded);
+
+  $('#btnTourSkip').addEventListener('click', endTour);
+  $('#btnTourPrev').addEventListener('click', () => { if (tourIdx > 0) showTourStep(tourIdx - 1); });
+  $('#btnTourNext').addEventListener('click', () => {
+    if (tourIdx < TOUR_STEPS.length - 1) showTourStep(tourIdx + 1);
+    else endTour();
+  });
+
+  // ---------- Menu gabungan (Master Harga + Spotlight + Info) ----------
+  const moreDd = $('#moreDd');
+  const btnMore = $('#btnMore');
+  const moreMenu = $('#moreMenu');
+
+  function closeMoreMenu() {
+    if (moreMenu.hidden) return;
+    moreMenu.hidden = true;
+    btnMore.setAttribute('aria-expanded', 'false');
+  }
+
+  btnMore.addEventListener('click', () => {
+    const open = moreMenu.hidden;
+    moreMenu.hidden = !open;
+    btnMore.setAttribute('aria-expanded', String(open));
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!moreMenu.hidden && !moreDd.contains(e.target)) closeMoreMenu();
+  });
+
+  // ---------- Event Master Harga ----------
+  const masterDialog = $('#masterDialog');
+  const masterForm = $('#masterForm');
+
+  $('#btnMaster').addEventListener('click', () => {
+    closeMoreMenu();
+    renderMasterModal();
+    masterDialog.returnValue = '';
+    masterDialog.showModal();
+  });
+
+  $('#btnMenuTour').addEventListener('click', () => {
+    closeMoreMenu();
+    startTour();
+  });
+
+  masterForm.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!(t instanceof HTMLInputElement)) return;
+    if (t.dataset.mkey || t.dataset.mc === 'price') moneyInput(t);
+  });
+
+  masterForm.addEventListener('click', (e) => {
+    const del = e.target.closest('[data-mcdel]');
+    if (!del) return;
+    const row = del.closest('.master-custom-row');
+    if (!row) return;
+    masterCustom = masterCustom.filter((c) => c.id !== row.dataset.mcid);
+    row.remove();
+    if (!$('#masterCustomList').children.length) $('#masterCustomGroup').hidden = true;
+  });
+
+  $('#btnAddMaster').addEventListener('click', () => {
+    const item = { id: uid(), label: '', unit: '', price: 0 };
+    masterCustom.push(item);
+    $('#masterCustomGroup').hidden = false;
+    $('#masterCustomList').insertAdjacentHTML('beforeend', customMasterRowHTML(item));
+    const input = $(`[data-mcid="${item.id}"] [data-mc="label"]`);
+    input.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    input.focus();
+  });
+
+  $('#btnResetMaster').addEventListener('click', () => {
+    masterPrices = Object.fromEntries(MASTER_DEFS.map((m) => [m.key, m.def]));
+    masterCustom = [];
+    saveMaster();
+    renderMasterModal();
+    syncActiveProjectFromMaster();
+    toast('Master harga dikembalikan ke standar');
+  });
+
+  masterDialog.addEventListener('close', () => {
+    if (masterDialog.returnValue !== 'ok') {
+      masterCustom = loadCustomMaster();
+      return;
+    }
+    masterForm.querySelectorAll('[data-mkey]').forEach((el) => {
+      const v = evalExpr(el.value, true);
+      if (v && v > 0) masterPrices[el.dataset.mkey] = Math.round(v);
+    });
+    masterCustom = [...masterForm.querySelectorAll('.master-custom-row')].map((row) => ({
+      id: row.dataset.mcid,
+      label: row.querySelector('[data-mc="label"]').value.trim(),
+      unit: row.querySelector('[data-mc="unit"]').value.trim(),
+      price: Math.round(evalExpr(row.querySelector('[data-mc="price"]').value, true) || 0),
+    })).filter((c) => c.label);
+    saveMaster();
+    const n = syncActiveProjectFromMaster();
+    toast(n > 0 ? `Master harga disimpan · ${n} item RAB diperbarui` : 'Master harga disimpan');
+  });
+
+  function openWelcome() {
+    closeMoreMenu();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    welcomeDialog.showModal();
+  }
+
+  $('#btnReplayTour').addEventListener('click', openWelcome);
+  $('#btnHelp').addEventListener('click', openWelcome);
+
+  window.addEventListener('resize', positionTour);
+  window.addEventListener('orientationchange', () => setTimeout(positionTour, 150));
+  window.addEventListener('scroll', positionTour, { passive: true });
+  document.addEventListener('keydown', (e) => {
+    if (tourIdx < 0) return;
+    if (e.key === 'Escape') endTour();
+    else if (e.key === 'ArrowRight') $('#btnTourNext').click();
+    else if (e.key === 'ArrowLeft' && tourIdx > 0) showTourStep(tourIdx - 1);
+  });
+
   // ---------- Mulai ----------
+  renderMasterDatalist();
   syncHideBtn();
   const yearEl = $('#year');
   if (yearEl) yearEl.textContent = String(new Date().getFullYear());
@@ -1785,4 +2569,8 @@
     flush();
   }
   renderAll();
+
+  let onboarded = false;
+  try { onboarded = localStorage.getItem(ONBOARD_KEY) === '1'; } catch (_) { /* abaikan */ }
+  if (!onboarded) welcomeDialog.showModal();
 })();

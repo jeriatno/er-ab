@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ER•AB — Estimasi Rencana Anggaran Biaya</title>
   <meta name="description" content="Buat Rencana Anggaran Biaya (RAB) bangun rumah atau renovasi dengan mudah. Gratis, tanpa daftar, tersimpan otomatis.">
+  <meta property="og:title" content="ER•AB — Estimasi Rencana Anggaran Biaya">
+  <meta property="og:description" content="Hitung perkiraan biaya bangun rumah, renovasi, tambah ruangan, pagar, dan kanopi dengan mudah. Gratis, tanpa login, siap cetak PDF & Excel.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://er-ab.jproject.id/">
+  <meta property="og:image" content="https://er-ab.jproject.id/assets/banner.png">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#032c69">
   <link rel="icon" type="image/png" href="assets/logo.png">
   <link rel="apple-touch-icon" href="assets/logo.png">
@@ -33,6 +39,34 @@
           </div>
         </div>
         <button type="button" class="btn btn-primary" id="btnNew">+ <span class="hide-sm">RAB </span>Baru</button>
+        <div class="more-dd" id="moreDd">
+          <button type="button" class="btn btn-help" id="btnMore" aria-haspopup="menu" aria-expanded="false" aria-label="Master harga &amp; panduan" title="Master harga &amp; panduan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+          </button>
+          <div class="proj-menu more-menu" id="moreMenu" role="menu" hidden>
+            <button type="button" class="proj-opt" role="menuitem" id="btnMaster">
+              <span class="more-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82Z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></span>
+              <span class="proj-opt-main">
+                <span class="proj-opt-name">Master Harga Bahan &amp; Upah</span>
+                <span class="proj-opt-meta">Atur harga lokal material & upah</span>
+              </span>
+            </button>
+            <button type="button" class="proj-opt" role="menuitem" id="btnMenuTour">
+              <span class="more-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg></span>
+              <span class="proj-opt-main">
+                <span class="proj-opt-name">Panduan Singkat (Spotlight)</span>
+                <span class="proj-opt-meta">Tur interaktif 5 langkah cara pakai</span>
+              </span>
+            </button>
+            <button type="button" class="proj-opt" role="menuitem" id="btnHelp">
+              <span class="more-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
+              <span class="proj-opt-main">
+                <span class="proj-opt-name">Tentang ER•AB</span>
+                <span class="proj-opt-meta">Lihat banner pengenalan &amp; fitur utama</span>
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
@@ -40,7 +74,7 @@
   <main class="wrap layout">
     <div class="content">
       <!-- 1. Info proyek -->
-      <section class="card collapsible">
+      <section class="card collapsible" id="infoCard">
         <button type="button" class="card-head" data-card-toggle aria-expanded="true">
           <div>
             <h2><span class="step">1</span>Info Proyek</h2>
@@ -79,7 +113,10 @@
           </div>
           <div class="section-actions">
             <span class="fs-total" id="fsTotal" hidden>Rp 0</span>
-            <button type="button" class="btn btn-accent" id="btnGen">✨ Generate Otomatis</button>
+            <button type="button" class="btn btn-accent" id="btnGen">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+              <span>Generate Otomatis</span>
+            </button>
             <button type="button" class="btn btn-fs" id="btnFullscreen" aria-pressed="false" aria-label="Mode layar penuh" title="Mode layar penuh">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
             </button>
@@ -131,8 +168,14 @@
         <p class="per-m2" id="perM2" hidden></p>
         <div class="recap" id="recap"></div>
         <div class="summary-actions">
-          <button type="button" class="btn btn-accent btn-block" id="btnPrint">🖨️ Cetak / Simpan PDF</button>
-          <button type="button" class="btn btn-block" id="btnCsv">📊 Unduh untuk Excel</button>
+          <button type="button" class="btn btn-accent btn-block" id="btnPrint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            <span>Cetak / Simpan PDF</span>
+          </button>
+          <button type="button" class="btn btn-block" id="btnCsv">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Unduh untuk Excel</span>
+          </button>
         </div>
         <div class="summary-links">
           <button type="button" class="link" id="btnBackup">Simpan cadangan</button>
@@ -148,7 +191,7 @@
 
   <footer class="footer">
     <div class="wrap">
-      <p>&copy; <span id="year">2026</span> <strong>ER•AB</strong> by <a href="https://jproject.id" target="_blank" rel="noopener noreferrer">jproject.id</a></p>
+      <p>&copy; <span id="year">2026</span> <strong>ER•AB</strong> by <a href="https://jproject.id" target="_blank" rel="noopener noreferrer">jproject.id</a> <span aria-hidden="true">·</span> <button type="button" class="link" id="btnReplayTour">Panduan penggunaan</button></p>
     </div>
   </footer>
 
@@ -159,6 +202,27 @@
     </div>
     <button type="button" class="btn btn-accent" id="btnGoSummary">Ringkasan</button>
   </div>
+
+  <dialog id="masterDialog" class="dialog-lg" aria-labelledby="masterTitle">
+    <form method="dialog" id="masterForm">
+      <div class="gen-head">
+        <div>
+          <h2 id="masterTitle">Master Harga Bahan &amp; Upah</h2>
+          <p class="muted">Sesuaikan dengan harga toko &amp; tukang di daerah Anda. Otomatis dipakai saat <b>Generate Otomatis</b>.</p>
+        </div>
+        <button type="button" class="link" id="btnResetMaster">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset standar
+        </button>
+      </div>
+      <div class="master-sections" id="masterGrid"></div>
+      <button type="button" class="btn btn-dashed master-add" id="btnAddMaster">+ Tambah Item Master Baru</button>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" class="btn" formnovalidate>Tutup</button>
+        <button type="submit" value="ok" class="btn btn-primary">Simpan Harga</button>
+      </div>
+    </form>
+  </dialog>
 
   <dialog id="newDialog" aria-labelledby="newTitle">
     <form method="dialog" id="newForm">
@@ -178,10 +242,13 @@
     <form method="dialog" id="genForm">
       <div class="gen-head">
         <div>
-          <h2 id="genTitle">✨ Generate RAB Otomatis</h2>
+          <h2 id="genTitle">Generate RAB Otomatis</h2>
           <p class="muted">Isi data singkat di bawah. Semua volume dan harga tetap bisa Anda ubah.</p>
         </div>
-        <button type="button" class="btn btn-formula" id="btnToggleFormula" aria-expanded="false">⚙️ Lihat &amp; Ubah Rumus</button>
+        <button type="button" class="btn btn-formula" id="btnToggleFormula" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>
+          <span>Lihat &amp; Ubah Rumus</span>
+        </button>
       </div>
 
       <div class="gen-split">
@@ -191,7 +258,7 @@
             <input type="hidden" name="type" id="genTypeInput" value="bangun">
             <div class="type-dd" id="typeDd">
               <button type="button" class="proj-trigger type-trigger" id="typeTrigger" aria-haspopup="listbox" aria-expanded="false">
-                <span class="type-current" id="typeCurrent">🏠 Bangun Rumah Baru</span>
+                <span class="type-current" id="typeCurrent">Bangun Rumah Baru</span>
                 <span class="proj-caret" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
               </button>
               <div class="proj-menu type-menu" id="typeMenu" hidden>
@@ -333,13 +400,13 @@
               </label>
               <label class="choice">
                 <input type="radio" name="workMode" value="pisah">
-                <strong>Pisah Bahan + Upah Harian</strong>
-                <small>Bahan per item + Tukang Harian (org/hari)</small>
+                <strong>Rincian Bahan Toko + Upah Harian</strong>
+                <small>Semen (zak), pasir, besi, bata + Tukang Harian</small>
               </label>
               <label class="choice">
                 <input type="radio" name="workMode" value="pisah_satuan">
-                <strong>Pisah Bahan &amp; Upah per Item</strong>
-                <small>Kolom Harga Bahan + Upah Tukang terpisah</small>
+                <strong>Rincian Bahan Toko + Upah per Pekerjaan</strong>
+                <small>Semen (zak), pasir, besi, dos + Upah per satuan</small>
               </label>
               <label class="choice">
                 <input type="radio" name="workMode" value="jasa">
@@ -378,7 +445,10 @@
               <strong>Parameter Rumus</strong>
               <small class="muted">Sesuaikan pengali harga wilayah &amp; koefisien perhitungan.</small>
             </div>
-            <button type="button" class="link" id="btnResetFormula">↺ Reset</button>
+            <button type="button" class="link" id="btnResetFormula">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              Reset
+            </button>
           </div>
           <div class="coeff-grid" id="genCoeffGrid"></div>
           <p class="formula-note">Rincian tiap item, volume, dan harga satuan bisa langsung diedit, dihapus, atau digeser urutannya di <b>Daftar Pekerjaan</b> setelah dibuat.</p>
@@ -392,10 +462,73 @@
     </form>
   </dialog>
 
+  <dialog id="welcomeDialog" class="welcome-dialog" aria-labelledby="welcomeTitle">
+    <div class="welcome-banner">
+      <div class="welcome-bar">
+        <img src="assets/logo-text.png" alt="ER•AB — Estimasi Rencana Anggaran Biaya" class="welcome-logo">
+        <span class="welcome-badge">Gratis · Tanpa Login</span>
+      </div>
+      <img src="assets/banner.png" alt="Ilustrasi perencanaan RAB rumah ER•AB" class="welcome-hero">
+    </div>
+    <div class="welcome-body">
+      <h2 id="welcomeTitle">Buat RAB Proyek Lebih Mudah &amp; Cepat</h2>
+      <p class="muted"><strong>ER•AB</strong> (<em>Estimasi Rencana Anggaran Biaya</em>) membantu Anda menghitung perkiraan biaya <strong>bangun rumah, renovasi, tambah ruangan, pagar, hingga kanopi</strong> secara rapi tanpa ribet rumus spreadsheet.</p>
+      <ul class="welcome-features">
+        <li>
+          <span class="wf-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+          <div>
+            <strong>Generate Rincian Otomatis</strong>
+            <small>Cukup masukkan ukuran proyek, rincian pekerjaan langsung terbentuk (borongan penuh atau pisah upah tukang).</small>
+          </div>
+        </li>
+        <li>
+          <span class="wf-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="12" y1="10" x2="12.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="12" y1="14" x2="12.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/><line x1="8" y1="18" x2="8.01" y2="18"/><line x1="12" y1="18" x2="16" y2="18"/></svg></span>
+          <div>
+            <strong>Hitung &amp; Atur Bebas</strong>
+            <small>Semua kolom angka bisa diisi rumus langsung (<code>+ - * /</code>), urutan item bisa di-drag, dan tersimpan otomatis di perangkat Anda.</small>
+          </div>
+        </li>
+        <li>
+          <span class="wf-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>
+          <div>
+            <strong>Siap Cetak PDF &amp; Excel</strong>
+            <small>Ekspor langsung ke dokumen RAB resmi lengkap dengan kop logo, rekapitulasi, terbilang, dan kolom tanda tangan.</small>
+          </div>
+        </li>
+      </ul>
+      <div class="welcome-actions">
+        <button type="button" class="btn" id="btnWelcomeSkip">Langsung Mulai</button>
+        <button type="button" class="btn btn-accent" id="btnStartTour">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          <span>Panduan Singkat (5 Langkah)</span>
+        </button>
+      </div>
+    </div>
+  </dialog>
+
+  <div class="tour-layer" id="tourLayer" hidden aria-live="polite">
+    <div class="tour-ring" id="tourRing"></div>
+    <div class="tour-tip" id="tourTip" role="dialog" aria-modal="false" aria-labelledby="tourTitle">
+      <div class="tour-top">
+        <span class="tour-step" id="tourStep">Langkah 1 dari 5</span>
+        <button type="button" class="icon-btn tour-close" id="btnTourSkip" title="Tutup panduan" aria-label="Tutup panduan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <h3 id="tourTitle"></h3>
+      <p id="tourDesc"></p>
+      <div class="tour-actions">
+        <button type="button" class="btn btn-sm" id="btnTourPrev">Kembali</button>
+        <button type="button" class="btn btn-accent btn-sm" id="btnTourNext">Lanjut</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <div id="printArea"></div>
   <input type="file" id="fileInput" accept=".json,application/json" hidden>
 
+  <datalist id="masterItemList"></datalist>
   <datalist id="unitList">
     <option value="m²"></option>
     <option value="m³"></option>
@@ -406,11 +539,14 @@
     <option value="titik"></option>
     <option value="set"></option>
     <option value="ls"></option>
+    <option value="truk"></option>
     <option value="rit"></option>
     <option value="kg"></option>
     <option value="zak"></option>
     <option value="btg"></option>
     <option value="lbr"></option>
+    <option value="pail"></option>
+    <option value="kaleng"></option>
     <option value="hari"></option>
     <option value="org/hari"></option>
   </datalist>
